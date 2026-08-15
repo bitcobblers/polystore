@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PolyStore.Tests/PolyStore.Tests.csproj" />
+  <Project Path="PolyStore/PolyStore.csproj" />
+</Solution>
