@@ -11,7 +11,7 @@ public interface IChangePropagator
     /// <param name="change">The change to propagate.</param>
     /// <param name="cancellationToken">The cancellation token to use.</param>
     /// <returns>An awaitable task.</returns>
-    ValueTask<IReadOnlyList<IRelationChange>> PropagateAsync(
-        IRelationChange change,
+    ValueTask<IReadOnlyList<RelationChange<T>>> PropagateAsync<T>(
+        RelationChange<T> change,
         CancellationToken cancellationToken = default);
 }

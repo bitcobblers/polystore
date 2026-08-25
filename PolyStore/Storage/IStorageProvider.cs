@@ -1,5 +1,4 @@
 using PolyStore.Core;
-using PolyStore.Execution;
 
 namespace PolyStore.Storage;
 
@@ -22,7 +21,7 @@ public interface IStorageProvider
     /// </summary>
     /// <param name="relation">The relation to check.</param>
     /// <returns>True if the relation can be realized.</returns>
-    bool Supports(IRelation relation);
+    bool Supports<T>(IRelation<T> relation);
 
     /// <summary>
     /// Opens the relation.
@@ -40,7 +39,7 @@ public interface IStorageProvider
     /// <param name="cancellationToken">The cancellation token to use.</param>
     /// <returns></returns>
     ValueTask<IRelationAccessor<T>> CreateAsync<T>(
-        IRelation relation,
+        IRelation<T> relation,
         StoreOptions options,
         CancellationToken cancellationToken = default);
 }

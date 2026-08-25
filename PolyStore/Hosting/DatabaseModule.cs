@@ -3,12 +3,11 @@ namespace PolyStore.Hosting;
 /// <summary>
 /// Defines a configurable database module.
 /// </summary>
-public abstract class DatabaseModule<TSchema>
-    where TSchema : DatabaseSchema
+public abstract class DatabaseModule
 {
     /// <summary>
     /// Configures the module.
     /// </summary>
     /// <param name="db">The database to build.</param>
-    public abstract TSchema Configure(DatabaseBuilder db);
+    public abstract void Configure(DatabaseBuilder db);
 }

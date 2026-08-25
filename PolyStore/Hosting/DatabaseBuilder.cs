@@ -24,10 +24,8 @@ public sealed class DatabaseBuilder
     /// <param name="name">The name of the relation.</param>
     /// <param name="factory">The factory used to create the relation.</param>
     /// <typeparam name="T">The type representing the relation.</typeparam>
-    /// <typeparam name="TSchema">The type representing the schema.</typeparam>
     /// <returns>A new relation.</returns>
-    public IRelation<T> Relation<T, TSchema>(string name, Func<DatabaseContext<TSchema>, IRelation<T>> factory)
-        where TSchema : DatabaseSchema
+    public IRelation<T> Relation<T>(string name, Func<DatabaseContext, IRelation<T>> factory)
     {
         throw new NotImplementedException();
     }

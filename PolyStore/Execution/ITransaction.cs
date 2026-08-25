@@ -9,25 +9,12 @@ namespace PolyStore.Execution;
 public interface ITransaction : IAsyncDisposable
 {
     /// <summary>
-    /// Inserts a new value into the source.
+    /// Executes a single relational expression.
     /// </summary>
-    /// <param name="source">The source to write to.</param>
-    /// <param name="value">The value to insert.</param>
-    void Insert<T>(ISource<T> source, T value);
-
-    /// <summary>
-    /// Inserts a new value into the source.
-    /// </summary>
-    /// <param name="source">The source to write to.</param>
-    /// <param name="value">The value to insert.</param>
-    void Update<T>(ISource<T> source, T value);
-
-    /// <summary>
-    /// Inserts a new value into the source.
-    /// </summary>
-    /// <param name="source">The source to write to.</param>
-    /// <param name="value">The value to insert.</param>
-    void Delete<T>(ISource<T> source, T value);
+    /// <param name="query">The query to execute.</param>
+    /// <typeparam name="T">The scalar return value of the query.</typeparam>
+    /// <returns>The scalar return of the expression.</returns>
+    ValueTask<T> ExecuteAsync<T>(IQueryable<T> query);
 
     /// <summary>
     /// Commits the transaction.

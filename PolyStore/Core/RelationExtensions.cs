@@ -3,8 +3,61 @@ using PolyStore.Storage;
 
 namespace PolyStore.Core;
 
+/// <summary>
+/// Defines common extensions for queryables and relations.
+/// </summary>
 public static class RelationExtensions
 {
+    /// <summary>
+    /// Defines extensions for <see cref="IQueryable{T}"/>
+    /// </summary>
+    /// <param name="source">The source queryable.</param>
+    /// <typeparam name="T">The queryable type.</typeparam>
+    extension<T>(IQueryable<T> source)
+    {
+        /// <summary>
+        /// Builds an update expression.
+        /// </summary>
+        /// <param name="update">The update clause to apply</param>
+        /// <typeparam name="TResult">An anonymous object describing the changes to the object.</typeparam>
+        /// <returns>The updated queryable.</returns>
+        public IQueryable<T> Update<TResult>(Expression<Func<T, TResult>> update)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Builds an update expression.
+        /// </summary>
+        /// <param name="target">The target relation to update.</param>
+        /// <param name="update">The update clause to apply.</param>
+        /// <typeparam name="TTarget">The type representing the type to update.</typeparam>
+        /// <typeparam name="TUpdate">An anonymous object describing the changes to the object.</typeparam>
+        /// <returns>The source queryable.</returns>
+        public IQueryable<T> Update<TTarget, TUpdate>(
+            Expression<Func<T, TTarget>> target,
+            Expression<Func<T, TUpdate>> update)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Inserts a collection of objects into the relation.
+        /// </summary>
+        /// <param name="insert">The insert handler to apply.</param>
+        /// <typeparam name="TInsert">The source record being inserted.</typeparam>
+        /// <returns>The source queryable.</returns>
+        public IQueryable<T> Insert<TInsert>(Expression<Func<T, TInsert>> insert)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Defines extension methods for <see cref="IRelation{T}"/>
+    /// </summary>
+    /// <param name="source">The source querable.</param>
+    /// <typeparam name="T">The queryable type.</typeparam>
     extension<T>(IRelation<T> source)
     {
         /// <summary>
@@ -15,33 +68,5 @@ public static class RelationExtensions
         public IRelation<T> Realize<TProvider>()
             where TProvider : IStorageProvider, new()
             => source;
-
-        public IRelation<T> Filter(Expression<Func<T, bool>> predicate) => new Relation<T>(
-            $"{source.Name}.Filter",
-            new FilterExpression(
-                source.Expression,
-                predicate));
-
-        public IRelation<TResult> Project<TResult>(Expression<Func<T, TResult>> projection) where TResult : class
-            => new Relation<TResult>(
-                $"{source.Name}.project",
-                new ProjectExpression(
-                    source.Expression,
-                    projection,
-                    typeof(TResult)));
-
-        public IRelation<TResult> Join<TRight, TKey, TResult>(IRelation<TRight> right,
-            Expression<Func<T, TKey>> leftKey,
-            Expression<Func<TRight, TKey>> rightKey,
-            Expression<Func<T, TRight, TResult>> projection) where TRight : class
-            => new Relation<TResult>(
-                $"{source.Name}.join.{right.Name}",
-                new JoinExpression(
-                    source.Expression,
-                    right.Expression,
-                    leftKey,
-                    rightKey,
-                    projection,
-                    typeof(TResult)));
     }
 }

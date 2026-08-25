@@ -1,12 +1,10 @@
 namespace PolyStore.Core;
 
-public interface IRelationChange;
-
 /// <summary>
 /// Defines a change to the relation.
 /// </summary>
 /// <typeparam name="T">The type of relation that was changed.</typeparam>
-public abstract record RelationChange<T> : IRelationChange;
+public abstract record RelationChange<T>;
 
 /// <summary>
 /// Defines an insert change.

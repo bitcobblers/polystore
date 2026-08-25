@@ -20,15 +20,4 @@ public sealed class OptimizationPipeline
         _optimizers.Add(new T());
         return this;
     }
-
-    /// <summary>
-    /// Runs the optimization pipeline
-    /// </summary>
-    /// <param name="expression">The expression to optimize.</param>
-    /// <returns>The optimized expression.</returns>
-    public RelationExpression Optimize(RelationExpression expression)
-        => _optimizers
-            .Aggregate(
-                expression,
-                (current, optimizer) => optimizer.Rewrite(current));
 }

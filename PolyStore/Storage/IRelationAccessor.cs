@@ -15,7 +15,7 @@ public interface IRelationAccessor<T>
     /// <summary>
     /// Gets the underlying relation.
     /// </summary>
-    IRelation Relation { get; }
+    IRelation<T> Relation { get; }
     
     /// <summary>
     /// Gets the supported capabilities of the realization.
