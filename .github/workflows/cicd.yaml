@@ -43,7 +43,7 @@ jobs:
         run: dotnet test --no-restore --configuration ${{ matrix.config }} --collect:"${{ env.collect }}" --logger:"${{ env.logger }}" --results-directory:"${{ env.results-directory }}"
 
   publish:
-    # if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
     needs: [test]
     env:
       DOTNET_NOLOGO: true
