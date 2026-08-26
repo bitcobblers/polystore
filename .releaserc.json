@@ -26,6 +26,12 @@
         "preset": "conventionalcommits"
       }
     ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "dotnet pack PolyStore/PolyStore.csproj --no-restore --no-build --configuration Release -p:Version=${nextRelease.version}"
+      }
+    ],
     "@semantic-release/github"
   ]
 }
