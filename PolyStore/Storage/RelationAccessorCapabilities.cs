@@ -4,7 +4,7 @@ namespace PolyStore.Storage;
 /// Flags describing the capabilities supported by a relation accessor.
 /// </summary>
 [Flags]
-public enum RelationAccessorCapabilities 
+public enum RelationAccessorCapabilities
 {
     /// <summary>
     /// No capabilities are supported.

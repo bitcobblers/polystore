@@ -17,7 +17,7 @@ public sealed class DatabaseBuilder
     {
         throw new NotImplementedException();
     }
-    
+
     /// <summary>
     /// Defines a new relation.
     /// </summary>

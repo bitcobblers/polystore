@@ -16,12 +16,12 @@ public interface IRelationAccessor<T>
     /// Gets the underlying relation.
     /// </summary>
     IRelation<T> Relation { get; }
-    
+
     /// <summary>
     /// Gets the supported capabilities of the realization.
     /// </summary>
     RelationAccessorCapabilities Capabilities { get; }
-    
+
     /// <summary>
     /// Applies a change to the realization.
     /// </summary>

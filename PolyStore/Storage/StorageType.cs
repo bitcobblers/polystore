@@ -9,7 +9,7 @@ public enum StorageType
     /// Use row storage for the type.
     /// </summary>
     Row,
-    
+
     /// <summary>
     /// Use column storage for the type.
     /// </summary>
