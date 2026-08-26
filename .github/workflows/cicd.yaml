@@ -1,8 +1,6 @@
 name: CICD
 on:
   push:
-    paths-ignore:
-      - 'README.md'
   pull_request:
   workflow_dispatch:
 
@@ -36,6 +34,9 @@ jobs:
       - name: Restore Packages
         run: dotnet restore
 
+      - name: Check Formatting
+        run: dotnet format --no-restore --verify-no-changes
+
       - name: Build Solution
         run: dotnet build --no-restore --configuration ${{ matrix.config }}
 
@@ -43,16 +44,20 @@ jobs:
         run: dotnet test --no-restore --configuration ${{ matrix.config }} --collect:"${{ env.collect }}" --logger:"${{ env.logger }}" --results-directory:"${{ env.results-directory }}"
 
   publish:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: [test]
     env:
       DOTNET_NOLOGO: true
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           show-progress: false
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -66,6 +71,12 @@ jobs:
       - name: Build Solution
         run: dotnet build --no-restore --configuration Release
 
+      - name: Run Tests
+        run: dotnet test --no-restore --configuration Release
+
       - name: Create Packages
         run: |
-          dotnet pack --no-restore --no-build
+          dotnet pack PolyStore/PolyStore.csproj \
+            --no-restore \
+            --no-build \
+            --configuration Release
