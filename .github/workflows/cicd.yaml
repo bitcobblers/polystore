@@ -41,3 +41,31 @@ jobs:
 
       - name: Run Tests
         run: dotnet test --no-restore --configuration ${{ matrix.config }} --collect:"${{ env.collect }}" --logger:"${{ env.logger }}" --results-directory:"${{ env.results-directory }}"
+
+  publish:
+    # if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    needs: [test]
+    env:
+      DOTNET_NOLOGO: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          show-progress: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Restore Packages
+        run: dotnet restore
+
+      - name: Build Solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Create Packages
+        run: |
+          dotnet pack --no-restore --no-build
