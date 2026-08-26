@@ -1,4 +1,4 @@
-﻿namespace PolyStore.Core;
+namespace PolyStore.Core;
 
 /// <summary>
 /// Represents a data source for a relation of type <typeparamref name="T"/>.

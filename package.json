@@ -1,0 +1,24 @@
+{
+  "name": "polystore",
+  "version": "1.0.0",
+  "description": "Hybrid next generation storage system",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitcobblers/polystore.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bitcobblers/polystore/issues"
+  },
+  "homepage": "https://github.com/bitcobblers/polystore#readme",
+  "devDependencies": {
+    "@semantic-release/exec": "^7.1.0",
+    "conventional-changelog-conventionalcommits": "^10.4.0",
+    "semantic-release": "^25.0.9"
+  }
+}

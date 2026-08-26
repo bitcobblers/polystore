@@ -1,4 +1,4 @@
-﻿using PolyStore.Hosting;
+using PolyStore.Hosting;
 
 namespace PolyStore.Tests;
 
