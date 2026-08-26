@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+
 namespace PolyStore.Core;
 
 /// <summary>

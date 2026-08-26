@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Linq.Expressions;
 using PolyStore.Storage;
 
@@ -9,7 +11,7 @@ namespace PolyStore.Core;
 public static class RelationExtensions
 {
     /// <summary>
-    /// Defines extensions for <see cref="IQueryable{T}"/>
+    /// Defines extensions for <see cref="IQueryable"/>
     /// </summary>
     /// <param name="source">The source queryable.</param>
     /// <typeparam name="T">The queryable type.</typeparam>
