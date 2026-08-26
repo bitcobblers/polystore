@@ -12,9 +12,10 @@ public interface ITransaction : IAsyncDisposable
     /// Executes a single relational expression.
     /// </summary>
     /// <param name="query">The query to execute.</param>
+    /// <param name="cancellationToken">The cancellation token to use.</param>
     /// <typeparam name="T">The scalar return value of the query.</typeparam>
     /// <returns>The scalar return of the expression.</returns>
-    ValueTask<T> ExecuteAsync<T>(IQueryable<T> query);
+    IAsyncEnumerable<T> ExecuteAsync<T>(IQueryable<T> query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Commits the transaction.

@@ -32,15 +32,21 @@ namespace HelloWorld
                 where c.FirstName == "John"
                 select c;
 
-            await tx.ExecuteAsync(customers
-                .Update(c => new
-                {
-                    LastName = "Doe"
-                })
-                .Select(u => u.Id));
+            var someCustomers = tx.ExecuteAsync(
+                from c in customers
+                where c.FirstName == "John"
+                select c);
+
+            var updatedCustomers = tx.ExecuteAsync(
+                context.From<Customer>()
+                    .Where(c => c.FirstName == "John")
+                    .Update(c => new
+                    {
+                        LastName = "Doe"
+                    }));
 
 #pragma warning disable CS0618 // Type or member is obsolete
-            await tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context
                 .Insert(new Customer
                 {
                     Id = 1,
@@ -48,7 +54,7 @@ namespace HelloWorld
                 }));
 #pragma warning restore CS0618 // Type or member is obsolete
 
-            await tx.ExecuteAsync(customers
+            _ = tx.ExecuteAsync(customers
                 .Update(c => new
                 {
                     LastName = "Doe"
@@ -58,7 +64,7 @@ namespace HelloWorld
                     State = "UT"
                 }));
 
-            await tx.ExecuteAsync(customers
+            _ = tx.ExecuteAsync(customers
                 .Select(c => new
                 {
                     C1 = c, // First customer
@@ -75,7 +81,7 @@ namespace HelloWorld
                         State = "UT"
                     }));
 
-            await tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context
                 .From<Customer>()
                 .Update(
                     target: c => c,
@@ -84,7 +90,7 @@ namespace HelloWorld
                         LastName = "Doe"
                     }));
 
-            await tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context
                 .Get<Customer>()
                 .Insert(new Customer
                 {
@@ -92,7 +98,7 @@ namespace HelloWorld
                     CreatedAt = DateTime.Now
                 }));
 
-            await tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context
                 .From<Customer>()
                 .Where(c => c.Expired == true)
                 .Insert(c => new ArchivedCustomer
