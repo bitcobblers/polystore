@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PolyStore.Core;
-using PolyStore.Hosting;
 using PolyStore.Execution;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -22,42 +21,9 @@ namespace HelloWorld
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             // Dummy objects for API syntax testing.
-            IRelationContext context = null!;
             await using ITransaction tx = null!;
 
-            var customers =
-                from c in context.From<Customer>()
-                where c.FirstName == "John"
-                select c;
-
-            _ = tx.ExecuteAsync(customers
-                .Update(c => new
-                {
-                    LastName = "Doe"
-                })
-                .Update(c => new
-                {
-                    State = "UT"
-                }), cancellationToken);
-
-            _ = tx.ExecuteAsync(customers
-                .Select(c => new
-                {
-                    C1 = c, // First customer
-                    C2 = c // Second customer (or some other relation).
-                })
-                .Update(c => c.C1, // Update first customer.
-                    c => new
-                    {
-                        LastName = "Doe"
-                    })
-                .Update(c => c.C2, // Update second customer.
-                    c => new
-                    {
-                        State = "UT"
-                    }), cancellationToken);
-
-            _ = tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context => context
                 .From<Customer>()
                 .Update(
                     target: c => c,
@@ -66,7 +32,7 @@ namespace HelloWorld
                         LastName = "Doe"
                     }), cancellationToken);
 
-            _ = tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context => context
                 .FromValues<Customer>(new Customer
                 {
                     Id = 1,
@@ -74,7 +40,7 @@ namespace HelloWorld
                 })
                 .Insert(), cancellationToken);
 
-            _ = tx.ExecuteAsync(context
+            _ = tx.ExecuteAsync(context => context
                 .From<Customer>()
                 .Where(c => c.Expired == true)
                 .Insert(c => new ArchivedCustomer

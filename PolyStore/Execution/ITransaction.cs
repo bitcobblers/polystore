@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using PolyStore.Core;
 
 namespace PolyStore.Execution;
 
@@ -19,7 +21,7 @@ public interface ITransaction : IAsyncDisposable
     /// <param name="cancellationToken">The cancellation token to use.</param>
     /// <typeparam name="T">The scalar return value of the query.</typeparam>
     /// <returns>The scalar return of the expression.</returns>
-    IAsyncEnumerable<T> ExecuteAsync<T>(IQueryable<T> query, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<T> ExecuteAsync<T>(Expression<Func<IRelationContext, IQueryable<T>>> query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Commits the transaction.

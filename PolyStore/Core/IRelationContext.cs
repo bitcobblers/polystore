@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace PolyStore.Hosting;
+namespace PolyStore.Core;
 
 /// <summary>
 /// Defines the context for a single transaction.
