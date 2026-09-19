@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace PolyStore.Core;
 
 /// <summary>
@@ -10,7 +8,4 @@ namespace PolyStore.Core;
 /// A relation is anything that can participate in a relational expression.
 /// Relations are built from sources or by chaining other relations together.
 /// </remarks>
-public interface IRelation<in T>
-{
-    IQueryable<int> Insert(T item);
-}
+public interface IRelation<in T>;

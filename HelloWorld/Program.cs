@@ -21,8 +21,6 @@ namespace HelloWorld
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            logger.LogInformation("Hello World!");
-
             // Dummy objects for API syntax testing.
             IRelationContext context = null!;
             await using ITransaction tx = null!;
@@ -32,28 +30,6 @@ namespace HelloWorld
                 where c.FirstName == "John"
                 select c;
 
-            var someCustomers = tx.ExecuteAsync(
-                from c in customers
-                where c.FirstName == "John"
-                select c);
-
-            var updatedCustomers = tx.ExecuteAsync(
-                context.From<Customer>()
-                    .Where(c => c.FirstName == "John")
-                    .Update(c => new
-                    {
-                        LastName = "Doe"
-                    }));
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            _ = tx.ExecuteAsync(context
-                .Insert(new Customer
-                {
-                    Id = 1,
-                    CreatedAt = DateTime.Now
-                }));
-#pragma warning restore CS0618 // Type or member is obsolete
-
             _ = tx.ExecuteAsync(customers
                 .Update(c => new
                 {
@@ -62,7 +38,7 @@ namespace HelloWorld
                 .Update(c => new
                 {
                     State = "UT"
-                }));
+                }), cancellationToken);
 
             _ = tx.ExecuteAsync(customers
                 .Select(c => new
@@ -79,7 +55,7 @@ namespace HelloWorld
                     c => new
                     {
                         State = "UT"
-                    }));
+                    }), cancellationToken);
 
             _ = tx.ExecuteAsync(context
                 .From<Customer>()
@@ -88,15 +64,15 @@ namespace HelloWorld
                     update: c => new
                     {
                         LastName = "Doe"
-                    }));
+                    }), cancellationToken);
 
             _ = tx.ExecuteAsync(context
-                .Get<Customer>()
-                .Insert(new Customer
+                .FromValues<Customer>(new Customer
                 {
                     Id = 1,
                     CreatedAt = DateTime.Now
-                }));
+                })
+                .Insert(), cancellationToken);
 
             _ = tx.ExecuteAsync(context
                 .From<Customer>()
@@ -106,7 +82,7 @@ namespace HelloWorld
                     Id = c.Id,
                     FirstName = c.FirstName,
                     ExpiredAt = DateTime.Now
-                }));
+                }), cancellationToken);
 
             lifetime.StopApplication();
         }

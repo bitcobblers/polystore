@@ -1,14 +1,13 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using PolyStore.Storage;
 
 namespace PolyStore.Core;
 
 /// <summary>
-/// Defines common extensions for queryables and relations.
+/// Defines common DML extensions for queryables.
 /// </summary>
-public static class RelationExtensions
+public static class IQueyableExtensions
 {
     /// <summary>
     /// Defines extensions for <see cref="IQueryable"/>
@@ -53,22 +52,14 @@ public static class RelationExtensions
         {
             throw new NotImplementedException();
         }
-    }
 
-    /// <summary>
-    /// Defines extension methods for <see cref="IRelation{T}"/>
-    /// </summary>
-    /// <param name="source">The source querable.</param>
-    /// <typeparam name="T">The queryable type.</typeparam>
-    extension<T>(IRelation<T> source)
-    {
         /// <summary>
-        /// Sets a realization for the relation.
+        /// Inserts a collection of objects into the relation.
         /// </summary>
-        /// <typeparam name="TProvider">The realization provider to use.</typeparam>
-        /// <returns>The current relation.</returns>
-        public IRelation<T> Realize<TProvider>()
-            where TProvider : IStorageProvider, new()
-            => source;
+        /// <returns>The source queryable.</returns>
+        public IQueryable<T> Insert()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

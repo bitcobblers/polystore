@@ -1,6 +1,4 @@
-using System;
 using System.Linq;
-using PolyStore.Core;
 
 namespace PolyStore.Hosting;
 
@@ -17,18 +15,10 @@ public interface IRelationContext
     IQueryable<T> From<T>();
 
     /// <summary>
-    /// Gets the underlying relation definition.
+    /// Gets a relation as a collection of values.
     /// </summary>
-    /// <typeparam name="T">the relation type to get/</typeparam>
-    /// <returns>The relation definition.</returns>
-    IRelation<T> Get<T>();
-
-    /// <summary>
-    /// Inserts a single value into a relation.
-    /// </summary>
-    /// <param name="item">The item to insert.</param>
-    /// <typeparam name="T">The relation type to update.</typeparam>
-    /// <returns>A queryable representing the number of records inserted.</returns>
-    [Obsolete("This method will be replaced with context short-hands.")]
-    IQueryable<int> Insert<T>(T item);
+    /// <param name="values">The values to create the relation from.</param>
+    /// <typeparam name="T">The relation type to create.</typeparam>
+    /// <returns>A queryable for the values collection.</returns>
+    IQueryable<T> FromValues<T>(params object[] values);
 }

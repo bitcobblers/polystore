@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using PolyStore.Core;
 
 namespace PolyStore.Hosting;
 
@@ -16,13 +15,7 @@ public abstract class DatabaseContext : IRelationContext
     }
 
     /// <inheritdoc />
-    public IRelation<T> Get<T>()
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <inheritdoc />
-    public IQueryable<int> Insert<T>(T item)
+    public IQueryable<T> FromValues<T>(params object[] values)
     {
         throw new NotImplementedException();
     }
