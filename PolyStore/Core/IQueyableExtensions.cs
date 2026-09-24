@@ -22,7 +22,7 @@ public static class IQueyableExtensions
         /// <param name="update">The update clause to apply</param>
         /// <typeparam name="TResult">An anonymous object describing the changes to the object.</typeparam>
         /// <returns>The updated queryable.</returns>
-        public IQueryable<T> Update<TResult>(Expression<Func<T, TResult>> update)
+        public IQueryable<TResult> Update<TResult>(Expression<Func<T, TResult>> update)
         {
             throw new NotImplementedException();
         }
@@ -48,7 +48,7 @@ public static class IQueyableExtensions
         /// <param name="insert">The insert handler to apply.</param>
         /// <typeparam name="TInsert">The source record being inserted.</typeparam>
         /// <returns>The source queryable.</returns>
-        public IQueryable<T> Insert<TInsert>(Expression<Func<T, TInsert>> insert)
+        public IQueryable<TInsert> Insert<TInsert>(Expression<Func<T, TInsert>> insert)
         {
             throw new NotImplementedException();
         }
@@ -58,6 +58,21 @@ public static class IQueyableExtensions
         /// </summary>
         /// <returns>The source queryable.</returns>
         public IQueryable<T> Insert()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IQueryable<T> Delete()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IQueryable<T> Update()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IQueryable<TResult> Fork<TResult>(params Expression<Func<IQueryable<T>, IQueryable<TResult>>>[] changes)
         {
             throw new NotImplementedException();
         }
