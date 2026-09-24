@@ -22,12 +22,10 @@ public record ArchivedCustomer : Customer, IPropagateChanges<ArchivedCustomer>
     public DateTime ExpiredAt { get; set; }
 
     /// <inheritdoc />
-    public IQueryable<ArchivedCustomer> Define(IRelationContext context)
-    {
-        return
-            from c in context.From<Customer>()
-            where c.Expired == true
-            select new ArchivedCustomer
+    public IQueryable<ArchivedCustomer> Define(IRelationContext context) =>
+        context.From<Customer>()
+            .Where(c => c.Expired == true)
+            .Select(c => new ArchivedCustomer
             {
                 Id = c.Id,
                 CreatedAt = c.CreatedAt,
@@ -35,8 +33,7 @@ public record ArchivedCustomer : Customer, IPropagateChanges<ArchivedCustomer>
                 Expired = c.Expired,
                 FirstName = c.FirstName,
                 LastName = c.LastName
-            };
-    }
+            });
 
     /// <inheritdoc />
     public IQueryable<ArchivedCustomer> Propagate(IRelationChangeContext context) =>
@@ -44,42 +41,44 @@ public record ArchivedCustomer : Customer, IPropagateChanges<ArchivedCustomer>
             .Combine(
                 context
                     .Combine(
-                        from c in context.Inserts<Customer>()
-                        where c.Expired == true
-                        select new ArchivedCustomer
-                        {
-                            Id = c.Id,
-                            CreatedAt = c.CreatedAt,
-                            ExpiredAt = DateTime.UtcNow,
-                            Expired = c.Expired,
-                            FirstName = c.FirstName,
-                            LastName = c.LastName
-                        },
-                        from c in context.Updates<Customer>()
-                        where c.OldValue.Expired == false && c.NewValue.Expired == true
-                        select new ArchivedCustomer
-                        {
-                            Id = c.NewValue.Id,
-                            CreatedAt = c.NewValue.CreatedAt,
-                            Expired = c.NewValue.Expired,
-                            ExpiredAt = DateTime.UtcNow,
-                            FirstName = c.NewValue.FirstName,
-                            LastName = c.NewValue.LastName
-                        }).Insert(),
+                        context.Inserts<Customer>()
+                            .Where(c => c.Expired == true)
+                            .Select(c => new ArchivedCustomer
+                            {
+                                Id = c.Id,
+                                CreatedAt = c.CreatedAt,
+                                ExpiredAt = DateTime.UtcNow,
+                                Expired = c.Expired,
+                                FirstName = c.FirstName,
+                                LastName = c.LastName
+                            }),
+                        context.Updates<Customer>()
+                            .Where(c => c.OldValue.Expired == false && c.NewValue.Expired == true)
+                            .Select(c => new ArchivedCustomer
+                            {
+                                Id = c.NewValue.Id,
+                                CreatedAt = c.NewValue.CreatedAt,
+                                Expired = c.NewValue.Expired,
+                                ExpiredAt = DateTime.UtcNow,
+                                FirstName = c.NewValue.FirstName,
+                                LastName = c.NewValue.LastName
+                            })
+                    ).Insert(),
                 context
                     .Combine(
-                        from c in context.Deletes<Customer>()
-                        where c.Expired == true
-                        select new ArchivedCustomer
-                        {
-                            Id = c.Id
-                        },
-                        from c in context.Updates<Customer>()
-                        where c.OldValue.Expired == true && c.NewValue.Expired == false
-                        select new ArchivedCustomer
-                        {
-                            Id = c.NewValue.Id
-                        }).Delete());
+                        context.Deletes<Customer>()
+                            .Where(c => c.Expired == true)
+                            .Select(c => new ArchivedCustomer
+                            {
+                                Id = c.Id
+                            }),
+                        context.Updates<Customer>()
+                            .Where(c => c.OldValue.Expired == true && c.NewValue.Expired == false)
+                            .Select(c => new ArchivedCustomer
+                            {
+                                Id = c.NewValue.Id
+                            })
+                    ).Delete());
 }
 
 [Relation, RowStore]
@@ -89,18 +88,14 @@ public class OrderByCustomer : IPropagateChanges<OrderByCustomer>
     public int OrderCount { get; set; }
 
     /// <inheritdoc />
-    public IQueryable<OrderByCustomer> Define(IRelationContext context)
-    {
-        return
-            from c in context.From<Order>()
-            group c by c.CustomerId
-            into g
-            select new OrderByCustomer
+    public IQueryable<OrderByCustomer> Define(IRelationContext context) =>
+        context.From<Order>()
+            .GroupBy(c => c.CustomerId)
+            .Select(g => new OrderByCustomer
             {
                 CustomerId = g.Key,
                 OrderCount = g.Count()
-            };
-    }
+            });
 
     /// <inheritdoc />
     public IQueryable<OrderByCustomer> Propagate(IRelationChangeContext context) =>
