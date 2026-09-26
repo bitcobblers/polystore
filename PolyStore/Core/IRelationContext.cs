@@ -1,4 +1,5 @@
 using System.Linq;
+using PolyStore.Storage;
 
 namespace PolyStore.Core;
 
@@ -13,6 +14,14 @@ public interface IRelationContext
     /// <typeparam name="T">The relation type to get.</typeparam>
     /// <returns>A queryable for the relation.</returns>
     IQueryable<T> From<T>();
+
+    /// <summary>
+    /// Gets a relation as a queryable collection.
+    /// </summary>
+    /// <typeparam name="T">The relation type to get.</typeparam>
+    /// <typeparam name="TPath">The access path to use.</typeparam>
+    /// <returns>A queryable for the relation.</returns>
+    IQueryable<T> From<T, TPath>() where TPath : IAccessPath<T>;
 
     /// <summary>
     /// Gets a relation as a collection of values.

@@ -4,7 +4,6 @@ using PolyStore.Storage;
 namespace HelloWorld;
 
 [Relation(Name = "customer")]
-[RowStore]
 public record Customer
 {
     public long Id { get; set; }
@@ -12,18 +11,28 @@ public record Customer
     public string? LastName { get; set; }
     public bool? Expired { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public class Heap : HeapPath<Customer>;
+
+    public class ById : BTreePath<Customer>
+    {
+        /// <inheritdoc />
+        public override void Configure()
+        {
+            Column(x => x.Id);
+            Include(x => x.FirstName);
+        }
+    }
 }
 
 [Relation(Name = "ArchivedCustomer")]
-[ColumnStorage(Compression = CompressionType.Brotli)]
-[RowStore(FillFactor = 0.75)]
 public record ArchivedCustomer : Customer, IPropagateChanges<ArchivedCustomer>
 {
     public DateTime ExpiredAt { get; set; }
 
     /// <inheritdoc />
     public IQueryable<ArchivedCustomer> Define(IRelationContext context) =>
-        context.From<Customer>()
+        context.From<Customer, Customer.ById>()
             .Where(c => c.Expired == true)
             .Select(c => new ArchivedCustomer
             {
@@ -81,7 +90,7 @@ public record ArchivedCustomer : Customer, IPropagateChanges<ArchivedCustomer>
                     ).Delete());
 }
 
-[Relation, RowStore]
+[Relation]
 public class OrderByCustomer : IPropagateChanges<OrderByCustomer>
 {
     public long CustomerId { get; set; }
@@ -129,7 +138,7 @@ public class OrderByCustomer : IPropagateChanges<OrderByCustomer>
                     }));
 }
 
-[Relation, RowStore]
+[Relation]
 public class Address
 {
     public long Id { get; set; }
@@ -141,7 +150,7 @@ public class Address
     public string? ZipCode { get; set; }
 }
 
-[Relation, RowStore]
+[Relation]
 public class Product
 {
     public long Id { get; set; }
@@ -151,7 +160,7 @@ public class Product
     public decimal Price { get; set; }
 }
 
-[Relation, RowStore]
+[Relation]
 public class Order
 {
     public long Id { get; set; }
@@ -160,7 +169,7 @@ public class Order
     public DateTime CreatedAt { get; set; }
 }
 
-[Relation, RowStore]
+[Relation]
 public class OrderItem
 {
     public long Id { get; set; }
