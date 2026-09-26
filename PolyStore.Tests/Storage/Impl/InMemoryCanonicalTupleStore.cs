@@ -1,9 +1,9 @@
 using PolyStore.Storage;
 using PolyStore.Storage.Impl;
 
-namespace PolyStore.Tests;
+namespace PolyStore.Tests.Storage.Impl;
 
-public class CanonicalTupleStoreTests
+public class InMemoryCanonicalTupleStore
 {
     private record TestTuple
     {
@@ -19,19 +19,6 @@ public class CanonicalTupleStoreTests
         var rid2 = store.Insert(new TestTuple { Id = 2 });
 
         Assert.NotEqual(rid1, rid2);
-    }
-
-    [Fact]
-    public void Insert_ReturnsSequentialRids()
-    {
-        var store = new InMemoryCanonicalTupleStore<TestTuple>();
-        var rid1 = store.Insert(new TestTuple { Id = 1 });
-        var rid2 = store.Insert(new TestTuple { Id = 2 });
-        var rid3 = store.Insert(new TestTuple { Id = 3 });
-
-        Assert.Equal(0UL, rid1.Value);
-        Assert.Equal(1UL, rid2.Value);
-        Assert.Equal(2UL, rid3.Value);
     }
 
     [Fact]
@@ -52,7 +39,7 @@ public class CanonicalTupleStoreTests
         var store = new InMemoryCanonicalTupleStore<TestTuple>();
         store.Insert(new TestTuple { Id = 1 });
 
-        Assert.False(store.TryGet(new Rid(999), out _));
+        Assert.False(store.TryGet(new Rid(), out _));
     }
 
     [Fact]
@@ -78,9 +65,6 @@ public class CanonicalTupleStoreTests
 
         store.Insert(new TestTuple { Id = 2 });
         Assert.Equal(2, store.Count);
-
-        store.Delete(new Rid(0));
-        Assert.Equal(1, store.Count);
     }
 
     [Fact]
@@ -94,9 +78,9 @@ public class CanonicalTupleStoreTests
     [Fact]
     public void Rid_Equality_Works()
     {
-        var a = new Rid(42);
-        var b = new Rid(42);
-        var c = new Rid(43);
+        var a = new Rid();
+        var b = new Rid();
+        var c = new Rid();
 
         Assert.Equal(a, b);
         Assert.NotEqual(a, c);

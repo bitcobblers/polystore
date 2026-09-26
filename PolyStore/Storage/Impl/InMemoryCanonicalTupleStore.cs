@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using PolyStore.Storage;
 
 namespace PolyStore.Storage.Impl;
 
@@ -12,13 +10,11 @@ namespace PolyStore.Storage.Impl;
 /// <remarks>
 /// This is a proof-of-concept implementation. It does not provide thread
 /// safety, persistence, or any of the other implementation concerns that
-/// the architecture leaves open. RIDs are allocated sequentially starting
-/// from zero.
+/// the architecture leaves open.
 /// </remarks>
 public sealed class InMemoryCanonicalTupleStore<T> : ICanonicalTupleStore<T>
 {
-    private readonly Dictionary<ulong, T> _tuples = new();
-    private ulong _nextRid;
+    private readonly Dictionary<Rid, T> _tuples = new();
 
     /// <inheritdoc />
     public int Count => _tuples.Count;
@@ -26,21 +22,21 @@ public sealed class InMemoryCanonicalTupleStore<T> : ICanonicalTupleStore<T>
     /// <inheritdoc />
     public Rid Insert(T value)
     {
-        ArgumentNullException.ThrowIfNull(value);
-        var rid = _nextRid++;
+        var rid = new Rid();
         _tuples[rid] = value;
-        return new Rid(rid);
+
+        return rid;
     }
 
     /// <inheritdoc />
     public bool TryGet(Rid rid, [MaybeNullWhen(false)] out T value)
     {
-        return _tuples.TryGetValue(rid.Value, out value);
+        return _tuples.TryGetValue(rid, out value);
     }
 
     /// <inheritdoc />
     public void Delete(Rid rid)
     {
-        _tuples.Remove(rid.Value);
+        _tuples.Remove(rid);
     }
 }

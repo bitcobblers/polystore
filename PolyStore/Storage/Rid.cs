@@ -12,41 +12,29 @@ namespace PolyStore.Storage;
 /// The precise RID representation is not yet finalized; this implementation
 /// uses a simple non-negative integer that can be extended in the future.
 /// </remarks>
-public readonly struct Rid : IEquatable<Rid>
+public readonly struct Rid() : IEquatable<Rid>
 {
-    /// <summary>
-    /// Gets the numeric value of this RID.
-    /// </summary>
-    public ulong Value { get; }
-
-    /// <summary>
-    /// Creates a new RID.
-    /// </summary>
-    /// <param name="value">The numeric value.</param>
-    public Rid(ulong value)
-    {
-        Value = value;
-    }
+    private readonly Guid _value = Guid.CreateVersion7();
 
     /// <inheritdoc />
-    public bool Equals(Rid other) => Value == other.Value;
+    public bool Equals(Rid other) => _value == other._value;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Rid other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => Value.GetHashCode();
+    public override int GetHashCode() => _value.GetHashCode();
 
     /// <summary>
     /// Determines whether two RIDs are equal.
     /// </summary>
-    public static bool operator ==(Rid left, Rid right) => left.Value == right.Value;
+    public static bool operator ==(Rid left, Rid right) => left._value == right._value;
 
     /// <summary>
     /// Determines whether two RIDs are not equal.
     /// </summary>
-    public static bool operator !=(Rid left, Rid right) => left.Value != right.Value;
+    public static bool operator !=(Rid left, Rid right) => left._value != right._value;
 
     /// <inheritdoc />
-    public override string ToString() => Value.ToString();
+    public override string ToString() => _value.ToString("N");
 }
