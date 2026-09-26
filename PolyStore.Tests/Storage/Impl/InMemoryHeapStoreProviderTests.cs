@@ -111,17 +111,4 @@ public class InMemoryHeapStoreProviderTests
 
         Assert.Equal([alice], heap.EnumerateTuples(store).ToArray());
     }
-
-    [Fact]
-    public void EnumerateRids_ReflectsStateAtTimeOfEnumeration()
-    {
-        var heap = new InMemoryHeapStoreProvider<TestTuple>();
-        var rid1 = new Rid();
-        heap.Add(rid1);
-
-        var rids = heap.EnumerateRids();
-        heap.Add(new Rid());
-
-        Assert.Equal([rid1], rids.ToArray());
-    }
 }

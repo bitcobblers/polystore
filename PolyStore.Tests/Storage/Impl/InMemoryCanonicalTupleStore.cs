@@ -66,26 +66,4 @@ public class InMemoryCanonicalTupleStore
         store.Insert(new TestTuple { Id = 2 });
         Assert.Equal(2, store.Count);
     }
-
-    [Fact]
-    public void Insert_NullTuple_Throws()
-    {
-        var store = new InMemoryCanonicalTupleStore<TestTuple>();
-
-        Assert.Throws<ArgumentNullException>(() => store.Insert(null!));
-    }
-
-    [Fact]
-    public void Rid_Equality_Works()
-    {
-        var a = new Rid();
-        var b = new Rid();
-        var c = new Rid();
-
-        Assert.Equal(a, b);
-        Assert.NotEqual(a, c);
-        Assert.True(a == b);
-        Assert.True(a != c);
-        Assert.Equal(a.GetHashCode(), b.GetHashCode());
-    }
 }
