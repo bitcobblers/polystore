@@ -651,6 +651,31 @@ docs(architecture): document realization boundary
 
 Do not mix broad formatting changes with behavioral changes.
 
+## Repository Modification Tasks
+
+When the user asks you to implement, modify, fix, refactor, or write code in the
+repository, you MUST use repository/file-editing tools to make those changes.
+
+Reasoning about the implementation, generating proposed code internally, or displaying
+code in the response does not satisfy the request.
+
+For repository modification tasks:
+
+1. Inspect the relevant existing files.
+2. Modify the files using the available editing tools.
+3. Verify that the modifications were actually written.
+4. Run relevant tests/builds.
+5. Inspect the resulting diff.
+6. Only then report completion.
+
+Do not stop after determining what the implementation should look like.
+
+If you have produced the intended implementation in reasoning but have not modified a
+file, continue the task by applying that implementation to the repository.
+
+Before reporting completion, verify that `git diff` contains the expected changes.
+If it does not, the implementation task is not complete.
+
 ## When Asked to Prototype
 
 Prototype code should still preserve architectural boundaries.
