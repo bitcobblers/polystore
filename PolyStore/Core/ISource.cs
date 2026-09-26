@@ -11,7 +11,7 @@ namespace PolyStore.Core;
 /// Sources are are mutable ingress points. Unlike other objects they can be
 /// written to, updated, and deleted depending on their provider's capabilities.
 /// </remarks>
-public interface ISource<in T> : IRelation<T>
+public interface ISource<T> : IRelation<T>
 {
     /// <summary>
     /// Inserts a new value into the source.

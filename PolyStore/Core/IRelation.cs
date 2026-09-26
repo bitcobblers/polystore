@@ -8,4 +8,4 @@ namespace PolyStore.Core;
 /// A relation is anything that can participate in a relational expression.
 /// Relations are built from sources or by chaining other relations together.
 /// </remarks>
-public interface IRelation<in T>;
+public interface IRelation<T>;

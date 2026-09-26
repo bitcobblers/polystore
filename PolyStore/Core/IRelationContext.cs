@@ -29,5 +29,5 @@ public interface IRelationContext
     /// <param name="values">The values to create the relation from.</param>
     /// <typeparam name="T">The relation type to create.</typeparam>
     /// <returns>A queryable for the values collection.</returns>
-    IQueryable<T> FromValues<T>(params object[] values);
+    IQueryable<T> FromValues<T>(params T[] values);
 }

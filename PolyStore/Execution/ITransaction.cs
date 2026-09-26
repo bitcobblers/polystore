@@ -9,9 +9,8 @@ using PolyStore.Core;
 namespace PolyStore.Execution;
 
 /// <summary>
-/// Represents a data source for a relation of type <typeparamref name="T"/>.
+/// Defines a single atomic transaction in the storage engine.
 /// </summary>
-/// <typeparam name="T">The type of the data in the source.</typeparam>
 public interface ITransaction : IAsyncDisposable
 {
     /// <summary>
