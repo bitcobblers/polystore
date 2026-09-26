@@ -1,645 +1,1115 @@
 # PolyStore Architecture
 
-PolyStore is an experimental C#-first relational storage and dataflow system.
+PolyStore is an experimental relational storage engine built around a simple idea:
 
-The project is exploring a model in which tables, indexes, views, projections, and other derived structures are represented uniformly as **relations** participating in a transactional dataflow graph.
+> A relation describes a logical set of tuples. Storage structures describe ways to access those tuples. Neither should define the other.
 
-This document describes the current architectural direction. It is not a promise that every detail is final. Where implementation and this document disagree, treat the disagreement as something to investigate rather than silently assuming the implementation is authoritative.
+Relations are exposed through a typed relational API. Tuples have a canonical representation independent of their physical access paths. Queries are expressed as relational operations and compiled into executable plans. Developers can leave physical decisions to the planner or explicitly constrain parts of a plan when predictable execution matters.
 
-## Goals
+PolyStore also explores transactional change propagation between relations, allowing derived relations to be maintained from upstream changes without requiring a separate batch-processing or orchestration system.
 
-PolyStore should provide:
+This document describes the architectural direction of the project. Some lower-level implementation details remain intentionally unspecified until experimentation establishes the appropriate design.
 
-* A strongly typed C# API for defining and querying relations.
-* A consistent relational abstraction across mutable and derived data.
-* Transactional propagation of changes through relation dependencies.
-* Strong internal consistency across asynchronously maintained structures.
-* Support for multiple physical storage and materialization strategies.
-* Explicit, inspectable query execution rather than opaque abstraction.
-* Extensibility without requiring each storage backend to reproduce a complete relational optimizer.
-* Fully asynchronous query and storage APIs where I/O may occur.
+---
 
-PolyStore is not intended to hide the capabilities of the underlying storage engine behind a lowest-common-denominator API.
+## 1. Design Goals
 
-## Core Concepts
+PolyStore is intended to explore several related ideas.
 
-### Relation
+### 1.1 Separate logical relations from physical access
 
-A relation is the primary logical abstraction in PolyStore.
+A relation should not inherently be a "heap table," "column store," "B-tree table," or other physical representation.
+
+Instead:
+
+- the **relation** defines the logical tuple set;
+- the **canonical store** owns the authoritative tuple representation;
+- **access paths** provide physical strategies for finding or partially materializing those tuples.
+
+A relation may have multiple access paths optimized for different workloads.
+
+### 1.2 Give the planner latitude by default
+
+High-level relational operations describe *what* should be computed.
+
+For example:
 
 ```csharp
-public interface IRelation<T>
-{
-}
+context.From<Customer>()
+    .Where(c => c.Region == "apac")
+    .Join(
+        context.From<Order>(),
+        c => c.Id,
+        o => o.CustomerId,
+        (c, o) => new { c.Name, o.Total });
 ```
 
-`T` is the logical element type of the relation.
+The planner is free to choose appropriate access paths and physical operators.
 
-Do not constrain `T` to `class`. Value types, records, structs, and other suitable CLR types may represent relation values.
+### 1.3 Allow developers to constrain physical execution
 
-A relation may represent:
-
-* a base table
-* a mutable source
-* a projection
-* an index
-* a materialized view
-* a transformed relation
-* an externally backed dataset
-
-The logical relation should remain distinct from the way its data is physically stored.
-
-### Source
-
-A source is a relation into which changes may enter the PolyStore dataflow.
+PolyStore also exposes lower-level operations when physical execution is part of the application's requirements.
 
 Conceptually:
 
 ```csharp
-public interface ISource<T> : IRelation<T>
+context.From<Customer, Customer.ById>()
+    .NestedLoop(
+        context.From<Order, Order.ByCustomerId>(),
+        ...);
+```
+
+An explicit access path or physical operator is a **constraint**, not a hint.
+
+If the requested plan cannot be constructed, planning should fail with a diagnostic rather than silently substituting a different strategy.
+
+### 1.4 Keep mutations relational
+
+Insert, update, and delete operations operate on sets.
+
+Mutation results should remain composable with the rest of the relational API rather than introducing a separate statement-oriented language.
+
+The exact mutation surface is still evolving, particularly around the limitations imposed by C# expression trees.
+
+### 1.5 Treat derived data as part of the transactional model
+
+Changes to source relations may propagate through a DAG of derived relations.
+
+The intended invariant is:
+
+> A transaction either commits the source changes and all required derived changes, or commits none of them.
+
+Incremental propagation is intended to operate over sets of changes rather than requiring row-at-a-time processing.
+
+---
+
+# 2. Conceptual Architecture
+
+At a high level:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                     Application / API                       │
+│                                                             │
+│   IQueryable<T> relational expressions                     │
+│   Explicit physical constraints where requested            │
+│   Relational mutation operations                           │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Relational Expression IR                 │
+│                                                             │
+│   Logical relational operators                             │
+│   Physical constraints                                     │
+│   Mutation expressions                                     │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Planner / Optimizer                     │
+│                                                             │
+│   Resolve required physical constraints                    │
+│   Select access paths                                      │
+│   Select physical operators                                │
+│   Determine tuple/materialization requirements             │
+│   Produce executable operator plan                         │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         Executor                            │
+│                                                             │
+│   Scan                                                      │
+│   Filter                                                    │
+│   Projection                                                │
+│   Join                                                      │
+│   Aggregate                                                 │
+│   Mutation                                                  │
+│   RID materialization                                      │
+│   ...                                                       │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       Storage Layer                         │
+│                                                             │
+│   Canonical tuple store                                    │
+│           │                                                 │
+│          RID                                                │
+│           │                                                 │
+│   ┌───────┼──────────┬──────────┬──────────┐               │
+│   │       │          │          │          │               │
+│  Heap   B-Tree    Columnar    Vector      ...              │
+│                                                             │
+│                 Access Paths                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The major boundary is between **logical tuple identity** and **physical tuple access**.
+
+---
+
+# 3. Relations
+
+A relation represents a logical set of typed tuples.
+
+In the C# API, relation schemas are represented using CLR types. This gives the authoring API access to the normal C# type system while allowing expression trees to serve as the initial representation of relational operations.
+
+For example:
+
+```csharp
+public class Customer
 {
+    public long Id { get; init; }
+    public string Name { get; init; }
+    public string Region { get; init; }
 }
 ```
 
-A source is mutable. A general `IRelation<T>` is not necessarily mutable.
+The CLR type describes the logical tuple shape. It does not imply that `Customer` is physically stored as a conventional row-oriented table.
 
-Mutation should therefore be expressed through capabilities rather than assuming that every relation supports writes.
+This distinction is fundamental.
 
-### Relation Change
+---
 
-Changes moving through the dataflow are relation-scoped.
+# 4. Canonical Tuple Storage
 
-A representative shape is:
+PolyStore currently assumes that every logical tuple has a canonical representation in a key-value-oriented storage layer.
 
-```csharp
-public readonly record struct RelationChange<T>(
-    ChangeKind Kind,
-    T? Before,
-    T? After);
-```
-
-The exact representation may evolve, but change propagation should remain explicit.
-
-Derived relations consume changes from upstream relations and produce their own changes.
-
-### Transaction
-
-Every operation that reads or mutates PolyStore-managed data executes within a transactional context.
-
-A transaction is not merely a storage-provider transaction. It is the consistency boundary across the relation graph.
-
-A transaction may:
-
-1. accept changes into one or more source relations;
-2. propagate those changes through dependent relations;
-3. persist required physical state;
-4. establish a durable transaction identity;
-5. make the committed state visible atomically according to PolyStore's consistency model.
-
-Changes must not become independently visible in different internal relations merely because asynchronous work occurs between stages.
-
-## Consistency Model
-
-Strong consistency inside PolyStore is a core design goal.
-
-In particular, PolyStore should avoid the class of behavior where:
-
-1. a write succeeds;
-2. direct lookup immediately sees the new item;
-3. a secondary index or search relation does not yet see it.
-
-Asynchronous execution does not imply eventual consistency.
-
-Internal relation maintenance may use asynchronous handoffs, but committed reads should observe a coherent transaction boundary.
-
-### Transaction Identity
-
-Committed transactions should have stable identities.
-
-The architecture should support reads conceptually equivalent to:
+Conceptually:
 
 ```text
-read these relations as of transaction 123
+RID -> Tuple
 ```
 
-This enables consistent reads across structures that may be physically maintained through different asynchronous paths.
+The canonical store answers two fundamental questions:
 
-The exact MVCC/versioning implementation is intentionally unspecified here.
+1. **Which representation of a tuple is authoritative?**
+2. **Given a tuple identifier, how can the complete tuple be obtained?**
 
-### External Systems
+Access paths do not replace this representation. They provide alternative ways of locating RIDs and, optionally, obtaining some tuple data without accessing the canonical representation.
 
-External connectors may not be able to participate in the same consistency guarantees.
+The exact implementation of the canonical KV store is not yet specified. Its internal page organization, compression strategy, buffer management, persistence format, and concurrency mechanisms remain implementation concerns.
 
-PolyStore should distinguish between:
+---
 
-* strongly consistent internal relations;
-* externally backed or asynchronously synchronized relations.
+# 5. RID
 
-Do not silently weaken internal consistency merely because some external integrations are eventually consistent.
+Every stored tuple has a **RID**.
 
-## Dataflow Model
+A RID is a logical tuple identifier rather than a physical memory or disk address.
 
-Relations form a directed dependency graph.
+Conceptually:
+
+```text
+RID -> canonical tuple
+```
+
+This indirection allows physical storage to change without requiring every access path referencing the tuple to be rewritten simply because the tuple moved.
+
+An access path therefore identifies tuples primarily through RIDs:
+
+```text
+BTree key ──► RID
+Heap entry ─► RID
+Vector entry ► RID
+Column data ─► RID
+```
+
+The precise RID representation is not yet defined.
+
+It may eventually contain information useful for efficient lookup, but consumers should not depend on a RID representing a stable physical location.
+
+---
+
+# 6. Access Paths
+
+An **access path** is a physical structure that provides a way to access tuples belonging to a relation.
+
+Examples under consideration include:
+
+| Access Path | Primary Purpose |
+|---|---|
+| Heap | Sequential traversal |
+| B-tree | Ordered lookup and range access |
+| Columnar | Efficient access to selected columns across many tuples |
+| Vector | Similarity / nearest-neighbor access |
+| Other structures | May be added as required |
+
+An access path is not the canonical tuple representation.
+
+Instead, it describes a way to find or partially realize tuples.
+
+## 6.1 Heap
+
+A heap access path can conceptually be as small as:
+
+```text
+RID
+RID
+RID
+RID
+...
+```
+
+The tuple itself remains in canonical storage.
+
+A heap may optionally carry additional tuple data when doing so provides useful read-performance tradeoffs.
+
+A heap is an access path like any other. PolyStore does not assume that every relation implicitly receives a heap.
+
+## 6.2 B-tree
+
+A B-tree path conceptually stores:
+
+```text
+Key -> RID
+```
 
 For example:
 
 ```text
-Orders
-  |
-  +--> OrdersByCustomer
-  |
-  +--> OpenOrders
-          |
-          +--> OpenOrdersByPriority
+Customer.Id -> RID
 ```
 
-A mutation entering `Orders` may cause changes to propagate through all affected descendants.
+This permits efficient lookup of tuples without requiring the B-tree to own the tuple itself.
 
-The graph is part of the transactional model.
+## 6.3 Columnar and other paths
 
-### Derived Relations
+Column-oriented access paths may provide efficient scans over selected attributes while retaining RID identity.
 
-Derived relations should be expressed declaratively where practical.
+The exact relationship between columnar encoding, canonical storage, and RID mapping is not yet defined.
+
+Likewise, vector and future access-path implementations are architectural extension points rather than finalized storage designs.
+
+---
+
+# 7. Payload / Included Columns
+
+An access path may carry additional tuple values alongside its primary structure.
+
+For a B-tree:
+
+```text
+Key -> RID + payload
+```
+
+Conceptually:
+
+```text
+Id -> RID, Name, Region
+```
+
+These payload values can allow operators to consume required columns without immediately materializing the canonical tuple.
+
+This creates an explicit tradeoff.
+
+| More payload | Less payload |
+|---|---|
+| More queries can avoid RID lookup | More queries require RID lookup |
+| Greater storage consumption | Smaller access structures |
+| Greater write amplification | Lower write amplification |
+| Potentially faster reads | Potentially cheaper writes |
+
+Payload columns are therefore a physical design decision.
+
+They do **not** determine which relational operations are legal.
+
+A query may use an access path even when that path does not contain every column required by the query. Missing values can be obtained from canonical storage through RID materialization.
+
+---
+
+# 8. Tuple Materialization
+
+Access-path scans produce some combination of:
+
+```text
+RID
+available tuple values
+```
+
+The planner tracks which attributes are currently available.
+
+If an operator requires an attribute that is not available from the current access path, the planner may introduce a canonical tuple lookup.
+
+For example:
+
+```text
+BTreeScan Customer.ById
+    available: RID, Id, Name
+          │
+          ▼
+Filter on Id
+          │
+          ▼
+RID Materialize
+    adds: LifetimeRevenue
+          │
+          ▼
+Filter LifetimeRevenue > 10000
+          │
+          ▼
+Projection Name, LifetimeRevenue
+```
+
+An explicit access path therefore constrains **how tuples are initially accessed**, not necessarily which columns can ever be used by the remainder of the query.
+
+This distinction is important.
+
+A query such as:
+
+```csharp
+context.From<Customer, Customer.ById>()
+    .Where(c => c.LifetimeRevenue > 10_000)
+```
+
+is not inherently invalid merely because `LifetimeRevenue` is absent from `ById`.
+
+The planner may retrieve the missing value through the RID.
+
+Whether materialization should occur, where it should occur, and whether another access path would have been cheaper are physical planning questions.
+
+---
+
+# 9. Query API
+
+The C# API is built around `IQueryable<T>` and expression trees.
+
+Expression trees provide a typed representation that can be translated into PolyStore's internal relational representation.
+
+## 9.1 Logical operations
+
+Normal relational operations give the planner latitude:
+
+```csharp
+context.From<Customer>()
+    .Where(c => c.Region == "apac")
+    .Select(c => new
+    {
+        c.Id,
+        c.Name
+    });
+```
+
+Operations such as:
+
+- `Where`
+- `Select`
+- `Join`
+- `GroupBy`
+- ordering
+- set operations
+
+describe logical intent.
+
+The planner determines physical execution.
+
+## 9.2 Physical operations
+
+PolyStore may also expose operations that deliberately constrain execution.
 
 Examples include:
 
-* projections
-* filters
-* indexes
-* aggregates
-* joins
-* materialized query results
-
-An index is not conceptually a special side structure disconnected from the relational model. It is a maintained relation with a particular access strategy.
-
-### Reactive Implementation
-
-Reactive mechanisms such as `IObservable<T>` may be useful internally for representing change propagation.
-
-They should not automatically become the public query API.
-
-Rx introduces significant semantic complexity, especially around scheduling, asynchronous handoffs, producer speed, buffering, and backpressure. Any Rx-based implementation must make those behaviors explicit and bounded.
-
-Do not assume that converting a pipeline to asynchronous Rx makes it safe under an unbounded producer.
-
-## Query API
-
-The logical query API is expected to use familiar LINQ concepts.
-
-Representative usage:
-
 ```csharp
-await foreach (var order in database
-    .From<Orders>()
-    .Where(x => x.CustomerId == customerId)
-    .ExecuteAsync(cancellationToken))
-{
-    // ...
-}
+NestedLoop(...)
 ```
 
-Query results that may involve asynchronous work should use:
+or selecting a particular access path.
 
-```csharp
-IAsyncEnumerable<T>
-```
+These constructs mean something materially different from ordinary LINQ operations.
 
-rather than:
-
-```csharp
-Task<IEnumerable<T>>
-```
-
-or:
-
-```csharp
-ValueTask<IEnumerable<T>>
-```
-
-Streaming is part of the execution model.
-
-### IQueryable
-
-`IQueryable<T>` may be used as part of query construction where its semantics are useful.
-
-Do not assume that `IQueryable<T>` by itself is sufficient to model:
-
-* asynchronous execution;
-* mutation;
-* change streams;
-* physical capabilities;
-* transaction semantics.
-
-Expression-tree translation is a tool, not the architecture.
-
-## Query Planning
-
-PolyStore should avoid attempting to reproduce decades of optimizer engineering present in mature storage engines.
-
-For storage providers such as PostgreSQL, the intended direction is approximately:
+Conceptually:
 
 ```text
-PolyStore logical query
-        |
-        v
-Intermediate relational representation
-        |
-        v
-Candidate backend query
-        |
-        v
-Backend EXPLAIN / plan information
-        |
-        v
-PolyStore validation / adaptation
-        |
-        v
-Executable backend query
+Join()
 ```
 
-The exact pipeline may change.
+means:
 
-The important architectural principle is:
+> Produce this relational join.
 
-> PolyStore should exploit backend optimizers rather than pretending they do not exist.
+Whereas:
 
-### Generated SQL Must Be Inspectable
-
-When a SQL backend is used, users must be able to inspect the SQL that PolyStore intends to execute.
-
-Generated SQL should not be treated as an implementation secret.
-
-Query-planner behavior is already difficult to diagnose. PolyStore must not introduce another opaque layer that prevents users from understanding what reaches the backend.
-
-## Parametric Queries
-
-PolyStore projections may expose optional filtering or other parameters.
-
-Unused parameters should disappear structurally from the generated query rather than becoming expressions such as:
-
-```sql
-WHERE (@customer_id IS NULL OR customer_id = @customer_id)
+```text
+NestedLoop()
 ```
 
-when a more selective query can be generated.
+means:
 
-For sufficiently complex queries, this requires structural query templating rather than merely appending predicates to the end of an existing query.
+> Produce this join using a nested-loop physical operator.
 
-For example, filters may need to affect:
+The planner may optimize around such a constraint but must not silently replace the requested physical operation with another implementation.
 
-* CTE definitions;
-* join placement;
-* subqueries;
-* aggregation inputs;
-* backend-specific constructs.
+---
 
-The query representation must therefore permit structural variation.
+# 10. Planning
 
-### Fast Feedback
+The planner translates relational expressions into an executable physical plan.
 
-Inspecting the generated query should be cheap and immediate.
+Its responsibilities include:
 
-A user should not need to:
+- determining applicable access paths;
+- selecting physical operators;
+- tracking available attributes;
+- inserting RID materialization where necessary;
+- honoring explicit physical constraints;
+- rejecting impossible constraints;
+- applying relational rewrites where legal;
+- estimating alternative plans where planner latitude exists.
 
-1. modify a query;
-2. invoke a separate build or generation command;
-3. inspect an artifact;
-4. repeat the process.
+The exact optimizer architecture is not yet defined.
 
-Query construction and backend-query inspection should participate in a tight development loop.
+PolyStore may initially use relatively simple rule-based planning and evolve toward more sophisticated costing as the execution and storage models stabilize.
 
-## Storage Architecture
+---
 
-Logical relations are separate from physical realization.
+# 11. Physical Constraints
 
-### Realize
-
-`Realize` is the conceptual definition-time operation that assigns physical storage or access behavior to a relation.
+Explicit physical operations are treated as planner constraints.
 
 For example:
 
 ```csharp
-relation.Realize(...);
+context.From<Customer, Customer.ById>()
 ```
 
-The public API is still evolving.
+requires the planner to begin access to `Customer` through `Customer.ById`.
 
-Do not make an `IRealization` abstraction central to normal query execution unless a concrete design requires it.
+Similarly:
 
-Realization is primarily a configuration concern.
+```csharp
+NestedLoop(...)
+```
 
-### Storage Provider
+requires the corresponding join to use nested-loop execution.
 
-A storage provider represents a backing storage technology capable of supporting multiple relations.
+These constraints reduce the planner's search space.
 
 Conceptually:
 
-```csharp
-public interface IStorageProvider
-{
-    IRelationAccessor<T> CreateAccessor<T>(...);
-}
+```text
+             unconstrained
+                  │
+          ┌───────┴───────┐
+          │               │
+       FIXED           optimizer
+      subtree            choice
+          │               │
+          └───────┬───────┘
+                  │
+             remaining
+             optimizer
+              choices
 ```
 
-The provider itself should generally remain non-generic.
+The planner remains free to optimize portions of the plan not constrained by the developer.
 
-Generic behavior belongs on relation-scoped methods and accessors.
+This provides a continuum rather than two separate query systems:
 
-Potential providers include:
-
-* PolyStore-native page storage;
-* append-oriented storage;
-* PostgreSQL;
-* SQLite;
-* in-memory storage;
-* test implementations.
-
-PostgreSQL and SQLite should be treated as possible storage providers, not as the architectural definition of storage itself.
-
-### Relation Accessor
-
-`IRelationAccessor<T>` separates logical relation/query machinery from physical storage.
-
-Representative shape:
-
-```csharp
-public interface IRelationAccessor<T>
-{
-}
+```text
+fully declarative ───────────────► fully constrained
+planner chooses                   developer chooses
 ```
 
-Specialized capability interfaces may include:
+Most queries should be able to remain toward the declarative end of that spectrum.
 
-```csharp
-public interface IScanAccessor<T> : IRelationAccessor<T>
-{
-}
+---
 
-public interface ISeekAccessor<T> : IRelationAccessor<T>
-{
-}
+# 12. Constraint Failure
 
-public interface IWriteAccessor<T> : IRelationAccessor<T>
-{
-}
-```
+Physical constraints are requirements, not suggestions.
 
-Capabilities should be explicit.
-
-Do not assume that every storage implementation supports every access pattern.
-
-Query planning may use these capabilities when selecting an execution strategy.
-
-## API Design Principles
-
-### Prefer Enforceable Contracts
-
-Prefer:
-
-1. type-system enforcement;
-2. explicit metadata;
-3. attributes;
-4. runtime validation;
-
-over undocumented naming conventions.
-
-Convention-based behavior should be used cautiously because it creates contracts that tooling cannot reliably enforce.
-
-### Use Attributes Where They Describe Metadata
-
-Some relation characteristics may be appropriately expressed using attributes.
+If a requested physical operation is impossible, PolyStore should report why rather than silently choosing another plan.
 
 Examples might include:
 
+- referenced access path does not exist;
+- requested operator cannot consume the provided inputs;
+- required ordering cannot be established under the specified constraints;
+- mutually incompatible physical constraints are present.
+
+Diagnostics should identify the constraint that could not be satisfied and, where practical, explain the conflicting requirement.
+
+This differs from traditional optimizer "hints" that may be advisory or ignored.
+
+---
+
+# 13. Access-Path Evolution
+
+Typed access-path definitions can provide useful development-time properties.
+
+If application code explicitly references:
+
 ```csharp
-[Mutable]
-public sealed class Orders : IRelation<Order>
-{
-}
+Customer.ById
 ```
 
-or:
+then deleting or renaming that access path can produce a normal compile-time failure in languages capable of expressing the reference statically.
+
+This makes explicit physical dependencies visible in source code.
+
+However, plan stability only exists where the developer explicitly requested it.
+
+An unconstrained query:
 
 ```csharp
-[Derived]
-public sealed class OpenOrders : IRelation<Order>
-{
-}
+context.From<Customer>()
 ```
 
-Attributes should describe metadata, not hide substantial runtime behavior.
+remains intentionally eligible to use newly added access paths.
 
-### Avoid Duplicate Schema Definitions
+Adding an access path may therefore change plans for unconstrained queries while leaving explicitly constrained queries unchanged.
 
-A relation should not require users to define:
+---
 
-1. the CLR relation type; and
-2. a separate central `DatabaseSchema` property bag containing the same information.
+# 14. Execution Model
 
-Discovery should preferably occur through DI, registration, attributes, generated metadata, or another mechanism that keeps each relation's definition close to the relation itself.
+PolyStore is currently oriented around a Volcano-style operator model.
 
-### Inference Must Be Conservative
-
-PolyStore may infer information when it can do so reliably.
-
-Do not infer semantics that could silently change correctness.
-
-It is better to require explicit configuration than to create a convenient but ambiguous contract.
-
-## Dependency Injection and Hosting
-
-Relation discovery and application hosting are separate concerns.
-
-PolyStore should integrate naturally with .NET dependency injection without requiring all consumers to use a particular hosting model.
-
-Possible responsibilities include:
+Conceptually, operators expose a common pull interface:
 
 ```text
-DI registration
-    discovers relation definitions
-    discovers storage providers
-    discovers transformations
-
-Runtime bootstrap
-    validates relation graph
-    validates capabilities
-    realizes relations
-    constructs execution services
+Open
+Next
+Current
+Close
 ```
 
-Avoid turning relation classes into service locators or giving them broad access to application infrastructure.
-
-## Asynchrony
-
-PolyStore is asynchronous by design where asynchronous work may occur.
-
-Preferred APIs include:
-
-```csharp
-ValueTask
-ValueTask<T>
-IAsyncEnumerable<T>
-```
-
-depending on semantics.
-
-Use `IAsyncEnumerable<T>` for sequences.
-
-Use `ValueTask<T>` only where its tradeoffs are justified; do not use it mechanically merely because an operation is asynchronous.
-
-### ConfigureAwait
-
-Library code should not depend on a caller's synchronization context.
-
-Whether `ConfigureAwait(false)` is used explicitly should be consistent with the project's target framework and coding policy rather than scattered defensively throughout the implementation.
-
-Do not assume code will only ever execute on the default thread pool.
-
-## Mutations
-
-Mutation syntax is still evolving.
-
-The intended direction is that mutation participates naturally in the query/dataflow model rather than being implemented as an unrelated CRUD API.
-
-Potential operations include:
-
-```csharp
-Insert(...)
-Update(...)
-Delete(...)
-```
-
-Updates may use expression-based transformations, including record `with` expressions where practical.
-
-Mutation APIs must preserve:
-
-* transaction boundaries;
-* relation capability checks;
-* change propagation;
-* `RETURNING`-style result projection where supported.
-
-Do not finalize mutation syntax without considering transaction semantics first.
-
-## Error Handling
-
-Prefer explicit failures over silent fallback when correctness could change.
-
-Examples:
-
-* unsupported query construct;
-* missing physical capability;
-* ambiguous relation metadata;
-* invalid relation graph;
-* backend translation failure;
-* inconsistent transaction state.
-
-A fallback is acceptable only when its semantics are equivalent or the caller explicitly opted into the behavior.
-
-## Performance Philosophy
-
-Correctness comes first, but PolyStore is intended to be performance-oriented infrastructure.
-
-Avoid architecture that inherently requires:
-
-* materializing entire result sets;
-* unbounded buffering;
-* unnecessary object allocation;
-* repeated expression compilation;
-* redundant schema reflection;
-* excessive abstraction around tight storage loops.
-
-Optimization should follow measurement, but obviously pathological designs should not be introduced merely for API elegance.
-
-## Source Layout
-
-The exact repository layout may evolve, but dependency direction should remain intentional.
-
-A likely structure is:
+A plan might resemble:
 
 ```text
-src/
-  PolyStore/
-    Relations/
-    Query/
-    Transactions/
-    Storage/
-    Dataflow/
-    Hosting/
-
-tests/
-  PolyStore.Tests/
+Projection
+    │
+NestedLoopJoin
+    ├── Filter
+    │     └── BTreeScan
+    │
+    └── HeapScan
 ```
 
-As the project grows, separate assemblies may be introduced around stable architectural boundaries.
+Each operator consumes tuples from its children and produces tuples for its parent.
 
-Do not split assemblies merely to create apparent modularity.
+This provides a common execution abstraction across heterogeneous access paths.
 
-## Architectural Invariants
+---
 
-Unless an explicit design decision changes them, preserve these assumptions:
+# 15. Storage Encapsulation
 
-1. `IRelation<T>` is the core logical abstraction.
-2. `T` is the logical relation element type and has no `class` constraint.
-3. Mutability is a capability, not an intrinsic property of every relation.
-4. Transactions span relation/dataflow behavior rather than only physical storage calls.
-5. Internal async propagation must not imply eventual consistency.
-6. Cross-relation committed reads must be capable of observing a coherent transaction version.
-7. Logical relations are distinct from their physical realization.
-8. `IStorageProvider` represents a storage technology and is not relation-generic.
-9. Physical access is expressed through relation-scoped accessors and explicit capabilities.
-10. Query result sequences use `IAsyncEnumerable<T>` when asynchronous execution is possible.
-11. Backend optimizers should be leveraged rather than reimplemented unnecessarily.
-12. Backend queries, especially generated SQL, must remain inspectable.
-13. Parametric queries may structurally change generated queries.
-14. Relation definitions should avoid duplicate centralized schema declarations.
-15. Prefer enforceable contracts over implicit conventions.
+Higher-level relational operators should not need to understand the internal representation of every access path.
 
-## Open Design Areas
-
-The following areas are intentionally unresolved:
-
-* exact transaction/version representation;
-* MVCC implementation;
-* relation graph construction;
-* mutation syntax;
-* change-set representation;
-* physical page/storage format;
-* native index organization;
-* optimizer architecture;
-* SQL intermediate representation;
-* relation realization API;
-* query-plan caching;
-* schema evolution;
-* distributed/external relation semantics;
-* Rx versus custom change-propagation machinery.
-
-Do not treat an unresolved area as permission to choose an irreversible design casually.
-
-When implementing one of these areas, document the decision and the alternatives considered.
-
-## Decision Records
-
-Significant architectural decisions should eventually be recorded separately, for example:
+For example:
 
 ```text
-docs/
-  adr/
-    0001-relations-as-core-abstraction.md
-    0002-transaction-versioned-reads.md
+BTreeScan ──────┐
+HeapScan ───────┤
+ColumnScan ─────┼──► common operator representation
+VectorScan ─────┘
 ```
 
-An ADR is appropriate when a change:
+A join operator should operate on its input streams rather than containing separate implementations for every possible storage pairing.
 
-* establishes a major abstraction;
-* changes an architectural invariant;
-* constrains future storage implementations;
-* introduces a difficult-to-reverse dependency;
-* materially changes consistency semantics.
+This is particularly important for cross-storage queries.
 
-## Status
+For example:
 
-PolyStore is early-stage software.
+```text
+BTree
+  │
+  ▼
+NestedLoopJoin
+  ▲
+  │
+Columnar
+```
 
-Expect experimentation.
+The join implementation should not fundamentally care that one child originated from a B-tree and the other from column-oriented storage.
 
-The goal is not to preserve every prototype. The goal is to preserve the architectural reasoning behind the system while allowing implementation details to evolve.
+Storage-specific behavior should remain as low in the operator tree as practical.
+
+---
+
+# 16. Row-at-a-Time vs. Vectorized Execution
+
+A conventional Volcano iterator is a useful conceptual starting point, but the final execution granularity is not yet fixed.
+
+Possible execution strategies include:
+
+```text
+Next() -> Tuple
+```
+
+and:
+
+```text
+NextBatch() -> TupleBatch
+```
+
+Column-oriented execution may benefit substantially from vectorized batches.
+
+PolyStore should avoid unnecessarily coupling relational operators to a row-at-a-time representation if doing so would make later vectorization difficult.
+
+This remains an implementation and benchmarking question.
+
+---
+
+# 17. Mutations as Relational Operations
+
+PolyStore treats mutations as operations over sets.
+
+Conceptually:
+
+```text
+source relation
+      │
+      ▼
+    filter
+      │
+      ▼
+   update
+      │
+      ▼
+resulting changed set
+```
+
+The changed set can participate in further relational operations.
+
+This avoids a hard boundary between:
+
+```text
+query expressions
+```
+
+and:
+
+```text
+mutation statements
+```
+
+The API should support expressing operations equivalent to:
+
+> Update this set of tuples, then use the affected tuples as the input to another relational operation.
+
+The exact C# syntax remains under development.
+
+In particular, ordinary assignment expressions cannot simply be embedded into C# expression trees, so mutation syntax must be designed around the actual capabilities of the expression-tree representation rather than assuming arbitrary C# statements can be captured.
+
+---
+
+# 18. Derived Relations
+
+PolyStore supports the concept of relations whose contents are derived from other relations.
+
+A derived relation has a full relational definition conceptually equivalent to:
+
+```csharp
+IQueryable<T> Define(IRelationContext context);
+```
+
+`Define()` describes what the relation means.
+
+For example:
+
+```text
+ArchivedCustomer =
+    Customer
+        .Where(customer => customer.Expired)
+        .Select(...)
+```
+
+This definition is useful both as a semantic description and as a way to construct the relation from its upstream data.
+
+The exact interface shape remains subject to change.
+
+---
+
+# 19. Incremental Change Propagation
+
+Recomputing an entire derived relation after every upstream change may be unnecessarily expensive.
+
+PolyStore therefore explores incremental propagation.
+
+Conceptually:
+
+```text
+upstream change set
+        │
+        ▼
+   propagation logic
+        │
+        ▼
+downstream mutations
+```
+
+Propagation operates on **sets of changes**, allowing a transaction to accumulate work before downstream relations are updated.
+
+Relevant upstream sets may include:
+
+```text
+Inserts<T>
+Updates<T>
+Deletes<T>
+```
+
+The precise representation of updates — including old/new values and how those values participate in relational expressions — remains an API design question.
+
+---
+
+# 20. Propagation DAG
+
+Derived relations form a dependency graph.
+
+For example:
+
+```text
+Staging
+   │
+   ▼
+Customer
+   ├──────────────► CustomerAnalytics
+   │
+   ▼
+ArchivedCustomer
+   │
+   ▼
+ArchiveAnalytics
+```
+
+When `Customer` changes, its downstream dependents may need corresponding changes.
+
+The engine is responsible for understanding dependency order and executing required propagation in a valid sequence.
+
+The graph must be acyclic.
+
+Propagation should therefore resemble:
+
+```text
+source mutations
+       │
+       ▼
+capture change set
+       │
+       ▼
+topologically ordered dependent propagation
+       │
+       ▼
+commit
+```
+
+rather than application code manually invoking each downstream relation.
+
+---
+
+# 21. Transactional Propagation
+
+The intended transactional invariant is:
+
+```text
+source changes
+      +
+derived changes
+      =
+one transaction
+```
+
+If:
+
+```text
+Customer
+    ↓
+ArchivedCustomer
+    ↓
+ArchiveAnalytics
+```
+
+participate in a propagation chain, observers should not see a committed state in which `Customer` reflects the transaction while required downstream relations do not.
+
+Either the complete required change commits or the transaction fails.
+
+This property distinguishes transactional propagation from conventional asynchronous data-pipeline architectures.
+
+---
+
+# 22. Propagation Correctness
+
+A full relation definition and its incremental propagation logic describe related but distinct things:
+
+```text
+Define()     -> what the relation means
+Propagate()  -> how a change can be applied incrementally
+```
+
+Where both mechanisms exist, an important correctness property is:
+
+> Applying an upstream change and incrementally maintaining the derived relation should produce the same logical relation as evaluating its full definition against the resulting source state.
+
+This provides a potentially powerful testing strategy.
+
+For example:
+
+1. Construct an initial source state.
+2. Materialize the derived relation using its full definition.
+3. Generate a change set.
+4. Apply incremental propagation.
+5. Independently evaluate the full definition against the resulting source state.
+6. Compare the resulting relations.
+
+Property-based testing may eventually automate this process.
+
+### No implicit correctness fallback
+
+PolyStore should not assume that an empty incremental result means propagation logic was incomplete.
+
+An empty result may legitimately mean:
+
+> This upstream change does not affect this derived relation.
+
+Therefore, the engine cannot generally infer that incremental propagation "missed" a transition and silently fall back to full recomputation.
+
+Whether full recomputation is explicitly available as an execution strategy is a separate design question.
+
+---
+
+# 23. Micro-Batching
+
+Change propagation is intended to operate over sets rather than individual callbacks.
+
+An application may accumulate multiple source mutations within a transaction:
+
+```text
+insert
+insert
+update
+delete
+insert
+      │
+      ▼
+transaction change set
+      │
+      ▼
+derived propagation
+```
+
+This provides many of the computational advantages associated with batching while preserving a transactional boundary.
+
+The application may ultimately control batch size according to workload requirements.
+
+The engine does not require an external event broker or scheduler merely to propagate changes between relations inside the database.
+
+External streaming systems may still be useful when the surrounding application architecture requires them.
+
+---
+
+# 24. Validation
+
+PolyStore should validate structural invariants as early as practical.
+
+Potential validation includes:
+
+- relation definitions are internally consistent;
+- access paths reference valid relations and attributes;
+- derived-relation dependencies are acyclic;
+- physical constraints reference valid physical structures;
+- propagation dependencies form a valid graph;
+- schemas and operator inputs are compatible.
+
+Different errors may naturally be detected at different stages:
+
+```text
+compile time
+    │
+engine initialization
+    │
+plan construction
+    │
+execution
+```
+
+The C# type system can catch some errors earlier than the engine.
+
+The engine must not rely exclusively on those language-level guarantees because architectural correctness belongs to the engine rather than to a particular client language.
+
+The exact boundary between initialization-time and planning-time validation remains to be determined.
+
+---
+
+# 25. C# API and Engine Boundary
+
+C# is currently the primary implementation and authoring language.
+
+It provides:
+
+- expression trees;
+- LINQ;
+- generics;
+- strong static typing;
+- mature asynchronous primitives;
+- high-performance memory APIs;
+- straightforward application integration.
+
+The C# API should not, however, define the fundamental semantics of PolyStore.
+
+Conceptually:
+
+```text
+C# expression API
+        │
+        ▼
+PolyStore relational representation
+        │
+        ▼
+planner / executor / storage
+```
+
+This leaves open the possibility of other frontends in the future.
+
+No commitment has been made to extracting engine components into Rust, C++, or another native implementation. Such a change should be driven by measured implementation requirements rather than assumed in advance.
+
+---
+
+# 26. Performance Philosophy
+
+PolyStore should avoid prematurely encoding performance assumptions into architectural contracts.
+
+Areas requiring measurement include:
+
+- canonical tuple representation;
+- page organization;
+- compression;
+- caching and buffer management;
+- RID lookup cost;
+- row versus batch execution;
+- columnar encoding;
+- join implementations;
+- concurrency control;
+- transaction logging;
+- memory allocation;
+- access-path maintenance;
+- write amplification.
+
+The architecture should make efficient implementations possible without claiming in advance which implementation will prove optimal.
+
+---
+
+# 27. Established Architectural Direction
+
+The following concepts currently represent the strongest architectural commitments:
+
+- Relations are logical typed tuple sets.
+- Canonical tuple identity is separate from physical access paths.
+- Canonical tuples are addressed through logical RIDs.
+- Access paths operate over RID space.
+- Access paths may carry payload columns to avoid canonical tuple lookup.
+- A relation may expose multiple heterogeneous access paths.
+- No particular access-path type is implicitly the canonical representation.
+- High-level relational operations give the planner physical latitude.
+- Low-level physical operations constrain the planner.
+- Explicit physical constraints must not silently degrade into hints.
+- Missing attributes can be materialized through RID lookup.
+- Physical operators should compose across heterogeneous storage.
+- Mutations operate on sets and should remain relationally composable.
+- Derived relations may be maintained from transactional change sets.
+- Required propagation through a derived-relation DAG occurs transactionally.
+- The engine, rather than application code, owns propagation ordering.
+
+---
+
+# 28. Open Design Questions
+
+Several major areas remain intentionally unresolved.
+
+## Storage
+
+- What is the physical representation of the canonical KV store?
+- How are RIDs encoded?
+- What buffer-management strategy should be used?
+- What compression belongs in canonical storage?
+- How are large values handled?
+- How are access paths persisted and recovered?
+
+## Transactions
+
+- What concurrency-control model should PolyStore use?
+- How is MVCC represented?
+- How are transaction-local versions addressed?
+- What does an "as-of transaction" read mean physically?
+- What logging and recovery model is appropriate?
+
+## Planner
+
+- How sophisticated should costing become?
+- How are cardinality estimates represented?
+- How are interesting physical properties propagated?
+- How are partially materialized tuples represented?
+- How aggressively should materialization be delayed?
+- How are developer constraints represented internally?
+
+## Executor
+
+- Row-at-a-time, vectorized, or hybrid execution?
+- How is asynchronous I/O integrated?
+- Where should parallelism exist?
+- How should memory budgets propagate through operators?
+- What execution representation should tuples and batches use?
+
+## Access Paths
+
+- What constitutes the minimum viable columnar path?
+- How should vector access integrate with ordinary relational predicates?
+- Can an access path reference another access path?
+- How are payload updates maintained efficiently?
+- How should access-path creation and rebuilding work?
+
+## Change Propagation
+
+- What is the final propagation interface?
+- How are old and new tuple versions exposed?
+- How are inserts, updates, and deletes composed ergonomically?
+- How are aggregate deltas represented?
+- When, if ever, should full recomputation be explicitly requested?
+- How should propagation interact with very large transactions?
+
+These questions are part of the architecture work rather than details to be silently filled in by an implementation.
+
+---
+
+# 29. Architectural Principle
+
+The central architectural distinction in PolyStore is:
+
+```text
+                LOGICAL
+                   │
+            Relation / Query
+                   │
+                   ▼
+                Planner
+                   │
+                   ▼
+                PHYSICAL
+                   │
+          ┌────────┼────────┐
+          │        │        │
+        Heap     BTree   Columnar
+          │        │        │
+          └────────┼────────┘
+                   │
+                  RID
+                   │
+                   ▼
+            Canonical Tuple
+```
+
+A relation is not its storage structure.
+
+A query is not its execution plan.
+
+An access path is not the authoritative tuple.
+
+A mutation is not necessarily a statement boundary.
+
+A derived relation is not necessarily a separate batch job.
+
+PolyStore attempts to keep those concepts independent while allowing developers to deliberately cross the abstraction boundary when they need physical control.
+
+That separation is the foundation on which the rest of the system is intended to evolve.
