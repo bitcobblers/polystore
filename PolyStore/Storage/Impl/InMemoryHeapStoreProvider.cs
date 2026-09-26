@@ -1,47 +1,57 @@
 using System.Collections.Generic;
 
-namespace PolyStore.Storage;
+namespace PolyStore.Storage.Impl;
 
 /// <summary>
-/// Defines a heap access path for a relation of type <typeparamref name="T"/>.
+/// An in-memory implementation of a heap storage structure.
 /// </summary>
 /// <typeparam name="T">The tuple type.</typeparam>
 /// <remarks>
-/// A heap is an access path that provides sequential traversal of a relation's tuples.
-/// Conceptually it is an ordered list of RIDs in insertion order. The tuples themselves
-/// remain in the canonical store; the heap only tracks their RIDs. A RID obtained from
-/// the heap can be resolved to its complete tuple through the canonical store.
-///
-/// A heap is an access path like any other. It does not own the authoritative tuple
-/// representation, and a relation is not assumed to implicitly have a heap.
+/// This is a proof-of-concept implementation. It maintains an ordered list of RIDs in
+/// insertion order. It does not provide thread safety, persistence, or any of the other
+/// implementation concerns that the architecture leaves open.
 /// </remarks>
-public interface IHeap<T>
+public sealed class InMemoryHeapStoreProvider<T>
 {
+    private readonly List<Rid> _rids = [];
+
     /// <summary>
     /// Gets the number of RIDs in the heap.
     /// </summary>
-    int Count { get; }
+    public int Count => _rids.Count;
 
     /// <summary>
     /// Adds a RID to the heap, appending it to the end to preserve insertion order.
     /// </summary>
     /// <param name="rid">The RID to add.</param>
     /// <remarks>Adding a RID that is already present has no effect.</remarks>
-    void Add(Rid rid);
+    public void Add(Rid rid)
+    {
+        if (!_rids.Contains(rid))
+        {
+            _rids.Add(rid);
+        }
+    }
 
     /// <summary>
     /// Removes a RID from the heap.
     /// </summary>
     /// <param name="rid">The RID to remove.</param>
     /// <returns><c>true</c> if the RID was present and removed; otherwise, <c>false</c>.</returns>
-    bool Remove(Rid rid);
+    public bool Remove(Rid rid)
+    {
+        return _rids.Remove(rid);
+    }
 
     /// <summary>
     /// Determines whether the heap contains the specified RID.
     /// </summary>
     /// <param name="rid">The RID to locate.</param>
     /// <returns><c>true</c> if the RID is present; otherwise, <c>false</c>.</returns>
-    bool Contains(Rid rid);
+    public bool Contains(Rid rid)
+    {
+        return _rids.Contains(rid);
+    }
 
     /// <summary>
     /// Enumerates the RIDs in the heap in insertion order.
@@ -51,7 +61,10 @@ public interface IHeap<T>
     /// The enumeration reflects the state of the heap at the time it was obtained.
     /// Subsequent modifications to the heap do not affect an already-obtained enumeration.
     /// </remarks>
-    IEnumerable<Rid> EnumerateRids();
+    public IEnumerable<Rid> EnumerateRids()
+    {
+        return _rids;
+    }
 
     /// <summary>
     /// Enumerates the tuples in the heap by resolving each RID through the canonical store.
@@ -63,5 +76,14 @@ public interface IHeap<T>
     /// heap to the canonical store, which is the authoritative tuple representation.
     /// RIDs that do not resolve to a tuple in the canonical store are skipped.
     /// </remarks>
-    IEnumerable<T> EnumerateTuples(ICanonicalTupleStore<T> store);
+    public IEnumerable<T> EnumerateTuples(ICanonicalTupleStore<T> store)
+    {
+        foreach (var rid in EnumerateRids())
+        {
+            if (store.TryGet(rid, out var tuple))
+            {
+                yield return tuple;
+            }
+        }
+    }
 }

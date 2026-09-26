@@ -3,7 +3,7 @@ using PolyStore.Storage.Impl;
 
 namespace PolyStore.Tests.Storage.Impl;
 
-public class InMemoryHeap
+public class InMemoryHeapStoreProviderTests
 {
     private record TestTuple
     {
@@ -12,9 +12,9 @@ public class InMemoryHeap
     }
 
     [Fact]
-    public void Add_Then_EnumerateRids_ReturnsRidsInInsertionOrder()
+    public void Add_Then_EnumerateRids_ReturnsRids()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         var rid1 = new Rid();
         var rid2 = new Rid();
         var rid3 = new Rid();
@@ -29,7 +29,7 @@ public class InMemoryHeap
     [Fact]
     public void Count_ReflectsNumberOfRids()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         Assert.Equal(0, heap.Count);
 
         heap.Add(new Rid());
@@ -42,7 +42,7 @@ public class InMemoryHeap
     [Fact]
     public void Contains_ReflectsMembership()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         var rid = new Rid();
 
         Assert.False(heap.Contains(rid));
@@ -55,7 +55,7 @@ public class InMemoryHeap
     [Fact]
     public void Remove_RemovesRid()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         var rid = new Rid();
         heap.Add(rid);
 
@@ -67,7 +67,7 @@ public class InMemoryHeap
     [Fact]
     public void Remove_ReturnsFalseForUnknownRid()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
 
         Assert.False(heap.Remove(new Rid()));
     }
@@ -75,7 +75,7 @@ public class InMemoryHeap
     [Fact]
     public void Add_DuplicateRid_IsTrackedOnlyOnce()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         var rid = new Rid();
 
         heap.Add(rid);
@@ -89,7 +89,7 @@ public class InMemoryHeap
     public void EnumerateTuples_ResolvesRidsThroughCanonicalStore()
     {
         var store = new InMemoryCanonicalTupleStore<TestTuple>();
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
 
         var alice = new TestTuple { Id = 1, Name = "Alice" };
         var bob = new TestTuple { Id = 2, Name = "Bob" };
@@ -103,7 +103,7 @@ public class InMemoryHeap
     public void EnumerateTuples_SkipsRidsAbsentFromCanonicalStore()
     {
         var store = new InMemoryCanonicalTupleStore<TestTuple>();
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
 
         var alice = new TestTuple { Id = 1, Name = "Alice" };
         heap.Add(store.Insert(alice));
@@ -115,7 +115,7 @@ public class InMemoryHeap
     [Fact]
     public void EnumerateRids_ReflectsStateAtTimeOfEnumeration()
     {
-        var heap = new InMemoryHeap<TestTuple>();
+        var heap = new InMemoryHeapStoreProvider<TestTuple>();
         var rid1 = new Rid();
         heap.Add(rid1);
 
