@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace PolyStore.Storage;
 
 /// <summary>
@@ -30,7 +32,7 @@ public interface ICanonicalTupleStore<T>
     /// <param name="rid">The RID of the tuple.</param>
     /// <param name="value">The retrieved tuple, or <c>default</c> if not found.</param>
     /// <returns><c>true</c> if the tuple was found; otherwise, <c>false</c>.</returns>
-    bool TryGet(Rid rid, out T value);
+    bool TryGet(Rid rid, [MaybeNullWhen(false)] out T value);
 
     /// <summary>
     /// Deletes a tuple from the store by its RID.
