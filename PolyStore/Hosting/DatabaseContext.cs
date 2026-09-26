@@ -23,7 +23,7 @@ public abstract class DatabaseContext : IRelationContext
     }
 
     /// <inheritdoc />
-    public IQueryable<T> FromValues<T>(params object[] values)
+    public IQueryable<T> FromValues<T>(params T[] values)
     {
         throw new NotImplementedException();
     }
