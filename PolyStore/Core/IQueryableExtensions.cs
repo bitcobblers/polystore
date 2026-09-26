@@ -7,7 +7,7 @@ namespace PolyStore.Core;
 /// <summary>
 /// Defines common DML extensions for queryables.
 /// </summary>
-public static class IQueyableExtensions
+public static class IQueryableExtensions
 {
     /// <summary>
     /// Defines extensions for <see cref="IQueryable"/>
