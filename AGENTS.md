@@ -283,10 +283,12 @@ General preferences:
 * immutable types where practical;
 * records or readonly structs for value-like data;
 * small interfaces with meaningful semantics;
+* avoid interfaces unless it's expected to be implemented more than once.
 * avoid unnecessary inheritance;
 * avoid service-locator patterns;
 * avoid global mutable state;
 * avoid reflection in hot paths unless cached or otherwise justified.
+* use expression bodies when possible over code blocks for function implementations.
 
 Do not introduce a dependency merely to save a small amount of implementation code.
 
@@ -449,26 +451,6 @@ When adding graph execution:
 * consider backpressure;
 * consider bounded memory usage.
 
-## Reactive Extensions
-
-Rx may be appropriate for internal change propagation.
-
-Do not adopt Rx casually.
-
-Any Rx-based implementation must explicitly consider:
-
-* scheduler behavior;
-* async boundaries;
-* producer/consumer imbalance;
-* buffering;
-* disposal;
-* error propagation;
-* backpressure or the lack thereof.
-
-Avoid unbounded queues between a fast producer and asynchronous consumer.
-
-Do not expose `IObservable<T>` as a public API merely because Rx is used internally.
-
 ## Query Translation
 
 Do not implement a large custom optimizer without a concrete requirement.
@@ -582,7 +564,15 @@ Good tests include:
 * failure rollback;
 * version-consistent reads.
 
+Tests should validate both passing and failing scenarios.
+
 Avoid tests that merely reproduce the exact internal call sequence unless that sequence is itself part of the contract.
+
+Test should be named after their class with a `Tests` suffix. For example. `InMemoryBTree` should correspond with the test class `InMemoryBTreeTests`.
+
+The `PolyStore.Tests` project should use the same folder layout as `PolyStore`.
+
+Tests should follow AAA standard with code grouped by their Arrange, Act, and Assert sections.
 
 For bugs, add a regression test when practical.
 
