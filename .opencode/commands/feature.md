@@ -1,5 +1,6 @@
 ---
 description: Implement a bounded PolyStore feature
+agent: plan
 ---
 
 Implement the following bounded feature according to ARCHITECTURE.md
