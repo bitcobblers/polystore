@@ -51,7 +51,7 @@ PolyStore's authoring model is fully generic over the relation's CLR type `T`:
 `BTreePath<T>`, `HeapPath<T>`, and `ICanonicalTupleStore<T>` all take `T` as their unit of
 value.
 
-The architecture commits to a model in which that is not sufficient for the physical layer:
+The architecture commits to a model in which `T` alone is insufficient for the physical layer:
 
 1. **Access paths expose attribute subsets.** A B-tree path stores `Key -> RID + payload`
    (`ARCHITECTURE.md` §6–§7); a heap stores only RIDs. A scan over such a path yields a
@@ -77,7 +77,7 @@ Today, none of these can be expressed:
 - `InMemoryHeapStoreProvider<T>.EnumerateTuples`
   (`PolyStore/Storage/Impl/InMemoryHeapStoreProvider.cs`) resolves **every** RID to a full
   `T` and *silently skips* RIDs that do not resolve — conflating "scan" and "materialize"
-  and hiding a consistency failure.
+  and quietly converting a consistency failure into a missing row.
 - There is no value that flows between physical operators. `T` is the only currency, so
   every operator is implicitly generic over the relation's CLR type.
 
@@ -168,7 +168,7 @@ document.
 - **D1 — Missing ≠ null.** A tuple scanned from a path that lacks attribute `A` must be
   distinguishable from a tuple in which `A` was read and is `null`. Consequence: a plain CLR
   `T` **cannot** represent a partially materialized tuple, because for a nullable property
-  (`string? FirstName`) there is no third state. A materialization state is mandatory.
+  (`string? FirstName`) there is no third state — and conflating the two is a dependable way to manufacture a bug that only surfaces in production, where a legitimately-null `FirstName` and an unmaterialized one are indistinguishable. A materialization state is mandatory.
 - **D2 — One currency between operators.** For operators to compose across heterogeneous
   paths (R4), scans of every path type must emit the same value type.
 - **D3 — Attribute identity must be stable and shared.** The planner, operators, canonical
@@ -369,7 +369,7 @@ ordinals `{Age:0, Id:1, Name:2}`. If a property `Email` is added, the new compil
 has sorted ordinals `{Age:0, Email:1, Id:2, Name:3}`. The *logical identity* (name) of
 the three existing attributes is unchanged; only the *runtime slots* for `Id` and `Name`
 shifted. A persistence format that keyed on names would be unaffected; one that keyed on
-ordinals would break — which is exactly why ordinals must not be persistence
+ordinals would break — persisting ordinals would turn an innocent property addition into an exciting storage-recovery exercise. That is exactly why ordinals must not be persistence
 identifiers.
 
 ```csharp
@@ -721,7 +721,7 @@ Design decisions:
   not loaded" from "attribute is null" (D1). Any design that drops the mask silently
   corrupts nullable attributes.
 - **Fail explicitly on missing reads (C4).** `GetValue` throws rather than returning
-  `default`. A plan that reads an unmaterialized attribute is a planner bug; surfacing it
+  `default` — returning `default` is a small lie that every downstream operator would inherit. A plan that reads an unmaterialized attribute is a planner bug; surfacing it
   as an exception (with schema + attribute name in the message) is the intended diagnostic
   path.
 - **Immutability.** Operators produce new `TupleValue`s; they never mutate a child's tuple.
@@ -1164,7 +1164,7 @@ Consequences:
    a source relation (the row's mask now covers all of that relation's attributes in the
    row's schema), the planner **may** drop that provenance entry to reduce per-tuple
    memory. The provenance is engine-internal; discarding it does not affect the logical
-   result. The planner is not required to discard it, but it is permitted to do so (§8).
+   result — though discarding it *before* the operator has consumed it would throw away the only map back to the canonical tuple, which is why the rule is scoped to *after* consumption. The planner is not required to discard it, but it is permitted to do so (§8).
 
 ### 5.9 Translation boundary (expression → attribute references → plan)
 
@@ -1450,7 +1450,7 @@ transaction. The representation consequences:
    boundary: source mutations + access-path maintenance + derived propagation still commit
    as one unit (`ARCHITECTURE.md` §21). It only changes *what value* flows inside that boundary — a
    schema-indexed tuple instead of a CLR object — which is strictly more information
-   (provenance + mask) than today's full `T`.
+   (provenance + mask) than today's full `T`, a value that carries no record of which of its attributes are materialized or where they came from.
 
 5. **`Fork`/`Insert`/`Update`/`Delete` DML stubs** will consume the same representation
    when implemented: the affected-set is a stream of `TupleValue`s, and the mutation
