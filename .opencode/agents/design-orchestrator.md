@@ -1,3 +1,23 @@
+---
+description: Orchestrator for feature design.
+permissions:
+- action: subagent
+  resource: "*"
+  effect: deny
+- action: subagent
+  resource: "designer"
+  effect: allow
+- action: subagent
+  resource: "design-reviewer"
+  effect: allow
+- action: subagent
+  resource: "performance-reviewer"
+  effect: allow
+- action: subagent
+  resource: "design-consistency-reviewer"
+  effect: allow
+---
+
 # Design Review Workflow
 
 Design proposals must pass two independent review perspectives before they are presented for implementation approval:
@@ -27,10 +47,12 @@ Do not implement the feature.
 
 ## Phase 2 — Independent Review
 
-Submit the same proposal independently to:
+Submit the same proposal independently and sequentially to:
 
 - `design-reviewer`
 - `performance-reviewer`
+
+Do not invoke the reviewers concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
 
 Neither reviewer should receive the other reviewer's findings during its initial review.
 
@@ -71,13 +93,63 @@ Repeat until:
 - both reviewers return `APPROVED`, or
 - the maximum review cycle count is reached.
 
-Limit automated review to 3 cycles.
+Limit automated review to 5 cycles.
 
-If the proposal cannot obtain approval after 3 cycles, stop and present the unresolved findings to the user.
+If the proposal cannot obtain approval after 5 cycles, stop and present the unresolved findings to the user.
 
-## Phase 5 — Human Approval
+Do not run the final consistency review while either primary reviewer still requests changes.
 
-Once both reviewers return `APPROVED`, present the user with:
+## Phase 5 — Consistency Review
+
+Once BOTH `design-reviewer` and `performance-reviewer` return `APPROVED`, invoke:
+
+- `design-editor`
+- `design-consistency-reviewer`
+
+The design editor's job is to make non-authoritative adjustments to the wording of the design for readability without changing its meaning.
+
+The consistency reviewer receives the complete current proposal.
+
+Its purpose is to detect cross-document contradictions, broken invariants, stale revision residue, identity/lifetime inconsistencies, and mismatches between the proposed design and its implementation plan.
+
+Do not ask the consistency reviewer to redesign the proposal.
+
+### Consistency Review Approval
+
+If `design-consistency-reviewer` returns `APPROVED`, the automated design review is complete.
+
+Proceed to the Human Approval Boundary.
+
+### Consistency Review Changes
+
+If `design-consistency-reviewer` returns `CHANGES_REQUESTED`:
+
+1. Give its complete findings to `designer`.
+2. Have `designer` revise the proposal.
+3. Treat the resulting document as a new proposal revision.
+
+Because consistency fixes may alter architectural or performance properties, do NOT send the revised document directly back only to the consistency reviewer.
+
+Instead:
+
+1. Submit the revised proposal again to `design-reviewer`.
+2. Submit the revised proposal again to `performance-reviewer`.
+3. Wait until both primary reviewers return `APPROVED`.
+4. Run `design-consistency-reviewer` again.
+
+Do not invoke the reviewers concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
+
+No proposal revision may bypass the primary reviewers.
+
+## Phase 6 — Human Approval
+
+Only after:
+
+- `doc-reviewer` returns `APPROVED`
+- `performance-reviewer` returns `APPROVED`
+- `design-consistency-reviewer` returns `APPROVED`
+
+Present the user with:
 
 - the final proposal
 - a concise summary of the design
@@ -90,7 +162,7 @@ Ask whether the approved proposal should be implemented.
 
 Do not begin implementation without explicit user approval.
 
-## Phase 6 — Implementation
+## Phase 7 — Implementation
 
 If the user approves implementation:
 
