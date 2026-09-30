@@ -1,6 +1,7 @@
 ---
 description: Performs a final consistency and specification-integrity review of approved PolyStore design proposals
 mode: subagent
+model: lmstudio/qwen/qwen3.8-27b#xhigh
 permissions:
   - action: edit
     resource: "*"

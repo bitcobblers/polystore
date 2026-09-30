@@ -1,6 +1,7 @@
 ---
 description: Adds personality and readability to approved PolyStore design documents without changing technical meaning
 mode: subagent
+model: lmstudio/qwen/qwen3.8-27b#low
 permissions:
   - action: edit
     resource: "docs/design/**"

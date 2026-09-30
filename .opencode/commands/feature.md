@@ -1,6 +1,7 @@
 ---
 description: Implement an approved PolyStore design
-agent: plan
+agent: build
+model: lmstudio/qwen/qwen3.8-27b#low
 ---
 
 Implement the approved design in `$2`.
@@ -28,7 +29,7 @@ Use the following three subagents:
 
 1. `feature-implementer`
 2. `feature-adversary`
-3. `reviewer`
+3. `code-reviewer`
 
 Run them sequentially.
 
@@ -70,7 +71,7 @@ Invoke `feature-adversary` again after substantive implementation changes.
 
 ### Final review
 
-When all tests pass, invoke `reviewer`.
+When all tests pass, invoke `code-reviewer`.
 
 The reviewer must evaluate the complete feature branch against its base
 branch and the approved design.
@@ -82,7 +83,7 @@ After changes:
 1. run normal tests;
 2. invoke `feature-adversary` again if behavior changed;
 3. run all tests;
-4. invoke `reviewer` again.
+4. invoke `code-reviewer` again.
 
 A review cycle consists of implementation/fixes, adversarial validation,
 tests, and final review.

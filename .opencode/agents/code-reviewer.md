@@ -1,6 +1,7 @@
 ---
 description: Reviews PolyStore implementation for correctness and design fidelity
 mode: subagent
+model: lmstudio/qwen/qwen3.8-27b#xhigh
 permissions:
   - action: edit
     resource: "*"
@@ -36,7 +37,7 @@ Focus on:
 - tests that encode behavior the design leaves unspecified;
 - tests that merely mirror implementation details;
 - performance behavior that contradicts explicit design requirements;
-- unnecessary complexity;
+- unnecessary complexity;`
 - changes outside the approved scope;
 - implementation of questions explicitly deferred by the design;
 - stale code or documentation left inconsistent by the change.

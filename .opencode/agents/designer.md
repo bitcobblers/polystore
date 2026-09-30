@@ -1,6 +1,7 @@
 ---
 description: Researches PolyStore architecture and produces detailed feature design proposals
 mode: subagent
+model: lmstudio/qwen/qwen3.8-27b#xhigh
 ---
 
 You are the PolyStore design agent.

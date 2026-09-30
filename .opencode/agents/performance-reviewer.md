@@ -1,6 +1,7 @@
 ---
 description: Reviews PolyStore design proposals for execution behavior, performance, scalability, and pathological cases
 mode: subagent
+model: lmstudio/qwen3.8-27b#medium
 permissions:
   - action: edit
     resource: "*"

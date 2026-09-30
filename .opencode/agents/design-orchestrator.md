@@ -1,5 +1,7 @@
 ---
 description: Orchestrator for feature design.
+mode: subagent
+model: lmstudio/qwen/qwen3.8-27b#low
 permissions:
 - action: subagent
   resource: "*"
