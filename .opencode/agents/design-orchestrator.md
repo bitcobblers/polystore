@@ -164,16 +164,21 @@ Ask whether the approved proposal should be implemented.
 
 Do not begin implementation without explicit user approval.
 
-## Phase 7 — Implementation
+## Phase 7 — Implementation Handoff
 
-If the user approves implementation:
+If the user approves the proposal for implementation:
 
-1. create a dedicated Git worktree for the feature
-2. implement the approved proposal in that worktree
-3. add or update tests
-4. run the relevant test suite
-5. submit the implementation to the appropriate code-review workflow
+1. determine an appropriate feature branch name
+2. invoke `feature.md` with:
+    - the feature branch name
+    - the path to the approved design document
+3. delegate implementation, testing, and code review to the feature workflow
 
-Implementation should follow the approved proposal.
+The approved design document is authoritative for implementation.
 
-If implementation reveals that the design is materially incorrect or incomplete, stop and return the issue to the design workflow rather than silently changing the architecture during implementation.
+Do not implement the feature directly from this workflow.
+
+If implementation reveals that the approved design is materially incorrect,
+incomplete, or internally inconsistent, stop and return the issue to the
+design workflow rather than silently changing the architecture during
+implementation.

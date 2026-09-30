@@ -33,9 +33,9 @@ The design workflow must:
 6. Re-submit the revised proposal to both reviewers.
 7. Continue until:
     - both reviewers approve the proposal, or
-    - three review cycles have completed.
+    - five review cycles have completed.
 8. If both reviewers approve, stop and present the result to the user.
-9. If review does not converge after three cycles, stop and present the unresolved findings to the user.
+9. If review does not converge after five cycles, stop and present the unresolved findings to the user.
 
 Do not implement the feature.
 
