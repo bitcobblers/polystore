@@ -7,6 +7,7 @@ separated logical attribute identity (name), runtime slot (ordinal), and physica
 encoding/layout (§5.2, I-IDENT/I-SLOT/I-PHYSICAL); added the relation naming invariant
 (I-NAME, §5.2); replaced the single-source RID invariant with a provenance model
 (§5.3, §5.8) enabling late materialization after combining operators.
+
 **Revised:** 2026-09-27 (second round) — addressed DR-1/DR-3 (added `Instance` discriminator to
 `ProvenanceEntry`; `GetRid` single-arg throws `AmbiguousProvenanceException` on duplicate
 source, two-arg disambiguates; §5.3, §5.8, §10.2, §12); DR-2 (mask invariant reworded to
@@ -15,17 +16,20 @@ copy-on-write, never mutated after publication); PR-1 (`TupleProvenance` backing
 inline first entry + overflow array; zero heap allocations for single-source, one for
 multi-source; §5.3, §8); PR-2 (selective merge batches all *m* attributes of a source into a
 single O(width) pass; `WithMaterializedMany` added; §5.3, §5.8 rule 3, §8).
+
 **Revised:** 2026-09-27 (third round) — addressed design-reviewer findings: added the
 `TupleProvenance.Create` factory (besides the empty default and `Union`), which validates
 unique (Source, Instance) pairs (`Union` enforces the same); clarified that instance IDs
 must be **unique per source** across a provenance, with 0/1 as the common 2-way join case
 and nested joins / multi-way self-joins requiring unique-per-source assignment (§5.3, §5.8,
 §10.2, §12).
+
 **Revised:** 2026-09-27 (fourth round) — addressed performance-reviewer finding PR-1:
 added non-`params` `Create(ProvenanceEntry)` and `Create(ProvenanceEntry, ProvenanceEntry)`
 overloads so the common scan (0 heap allocations) and 2-way join (1 allocation) hot paths do
 not pay the `params` array allocation at the call site; the `params` overload remains for the
 general multi-way case (§5.3, §8, §10.2).
+
 **Revised:** 2026-09-27 (fifth round) — addressed design-consistency-reviewer findings
 CR-1…CR-7: documented that `OutputSignature.Provenance` uses placeholder RIDs at plan
 time — only (Source, Instance) pairs are meaningful (§5.8); §5.12 projection output edges
@@ -36,6 +40,7 @@ values array represents the empty set of materialized values); §5.12 join examp
 `Id`, and the join signature no longer lists `CustomerId`; Phase 2 now includes
 `AmbiguousProvenanceException` (§13); §8's multi-source allocation claim is qualified per
 overload (two-entry `Create`: 1 allocation; `params`: 2 allocations).
+
 **Scope:** This document designs the *runtime representation of relation tuples* and the
 boundary between the typed authoring layer and the physical execution layer. It is **not** a
 planner or executor design: no operator tree, costing model, or translation pipeline is
