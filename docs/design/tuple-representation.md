@@ -49,6 +49,61 @@ preserve.
 
 ---
 
+## Executive Summary
+
+PolyStore's authoring model is fully generic over the relation's CLR type `T`, but the
+physical layer needs more than `T`: access paths expose only attribute subsets, missing
+attributes must be recoverable through the canonical store via RID, operators must
+compose across heterogeneous paths, and the canonical store must not couple to a
+particular CLR type. Today none of this can be expressed: there is no schema or
+attribute-identity model, no representation for a partially materialized tuple, and `T`
+is the only currency between operators.
+
+**Decision.** Generics are confined to the typed authoring layer; below a one-way
+translation boundary, the runtime is non-generic and schema-driven. `T` remains the
+authoring, registration, and value-construction currency. The unit of value is
+`TupleValue`, the unit of shape is `RelationSchema`, the unit of logical attribute
+identity is the attribute name, the unit of runtime indexing is a schema-local ordinal,
+and the unit of tuple identity is the RID.
+
+**Key design choices.**
+
+- *Schema model.* Logical identity (name) is distinct from the runtime slot (ordinal),
+  a schema-local index rather than a persistence identifier; physical encoding is owned
+  by the storage format.
+- *Runtime tuple.* `TupleValue` carries a materialization mask distinguishing "attribute
+  not present" from "null", plus provenance recording which source relation (and which
+  join instance) each attribute came from — enabling late materialization after combining
+  operators. Ambiguous lookups (e.g., self-joins) throw rather than guess.
+- *Non-generic canonical store.* `ICanonicalTupleStore` maps RID → full `TupleValue`;
+  the design's one breaking public change (`ICanonicalTupleStore<T>` → non-generic).
+- *Access path description.* Each path declares what it provides (key ordinals, payload,
+  ordering) so the planner can decide materialization; the heap de-genericizes to
+  RID-only enumeration.
+- *Registry.* `RelationRegistry` is the only place that knows `T` ↔ schema ↔ codec ↔
+  store ↔ paths for a relation — a keyed DI map, not a property bag.
+- *Cost.* One array allocation plus value-type boxing per materialized tuple; attribute
+  access uses compiled accessors, never per-tuple reflection.
+
+**Scope boundaries.** A representation design, not a planner or executor: no operator
+tree, costing model, or translation pipeline beyond the representation and the
+invariants it must preserve. Costing, batching/vectorization, persistence formats, and
+concurrency control remain open areas for follow-on designs.
+
+**Implementation phases.** Phase 1: schema model. Phase 2: runtime tuple + codec.
+Phase 3: non-generic canonical store (with migration off the generic versions).
+Phase 4: access path description + relation registry. Phase 5 (separate design):
+translation + planning. Phase 6 (separate design): propagation wiring.
+
+**Unresolved questions.** None block the representation design: null semantics in
+predicates, update/delete targeting, RID scope, sparse layouts for wide relations,
+selective-merge materialization, interesting-ordering propagation, delta-based
+propagation, custom-operator mapping, the projection-reconstruction API, a dedicated
+stable attribute ID, the canonical store's physical encoding, and self-join provenance
+disambiguation are deferred to the follow-on planner, storage, or translation designs.
+
+---
+
 ## 1. Problem Statement
 
 PolyStore's authoring model is fully generic over the relation's CLR type `T`:

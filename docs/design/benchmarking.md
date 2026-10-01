@@ -18,6 +18,56 @@ design the executor, planner, or any storage implementation. Those are `ARCHITEC
 
 ---
 
+## Executive Summary
+
+PolyStore's architecture defers performance decisions to measurement: `ARCHITECTURE.md`
+names canonical tuple representation, RID lookup cost, execution granularity, and
+allocation as areas that require measurement before design decisions are made. Today
+there is no way to measure any of this — no benchmark project, no dataset fixtures, no
+repeatable invocation path, no place for results. This document establishes the smallest
+coherent foundation that makes those measurements possible and repeatable.
+
+**Decision.** A dedicated `PolyStore.Benchmarks` executable project using
+BenchmarkDotNet 0.15.8, referencing the PolyStore library only. It is a local-first,
+repeatable measurement harness: one command to run, results persisted to the
+gitignored `artifacts/` directory, and no changes to PolyStore's public API.
+
+**Key design choices.**
+
+- *No shared base class.* Benchmark classes are self-contained; shared logic lives in
+  small static helpers (`DatasetGenerator`, `BenchTuple`, `DatasetSizes`).
+- *Setup is never measured.* Dataset construction happens in `[GlobalSetup]`; measured
+  methods perform only the operation under test.
+- *Measure the public surface.* Benchmarks exercise the storage API as a consumer would,
+  staying provider- and access-path-independent so alternative implementations can be
+  compared when they land.
+- *State-restoring writes.* Write benchmarks are self-contained cycles (insert+delete,
+  add+remove) that restore state each iteration.
+- *Per-subsystem size matrices.* The O(n²)-setup heap uses 1k/10k; the O(n)-setup
+  canonical store uses 10k/100k, with a 1M opt-in for deep runs.
+- *Honest measurement.* `[MemoryDiagnoser]` reports allocations; BDN's process isolation
+  and warmup handle JIT effects; the harness reproduces the product's runtime semantics
+  (no `InvariantGlobalization`).
+- *Baselines only for genuine A/B comparisons.* The initial set has no baselines;
+  within-run `[Baseline]` ratios are reserved for Phase 3.
+
+**Scope boundaries.** Not a load-testing, soak, concurrency, or multi-process platform;
+does not design the executor, planner, or any storage implementation. CI integration is
+an optional, non-gating smoke job; load testing, dashboards, and result databases are
+out of scope.
+
+**Implementation phases.** Phase 0: project skeleton + one RID micro-benchmark (validates
+the toolchain). Phase 1: fixtures + the storage benchmark set. Phase 2: result
+persistence + optional non-gating CI smoke. Phase 3 (future, separate): A/B comparison,
+end-to-end streaming, concurrency — once those engine features exist.
+
+**Unresolved questions.** None block the foundation: the cross-commit baseline format
+and regression threshold, isolated single-write benchmarks, the end-to-end benchmark
+shape, and the concurrency harness are each deferred until the relevant engine area
+lands.
+
+---
+
 ## 1. Problem Statement
 
 PolyStore's architecture deliberately defers performance decisions to measurement.
@@ -375,7 +425,7 @@ The conventions:
    - `[ParamsSource(nameof(Sizes))]` or `[Params(...)]` — the parameter matrix (§5.5).
      These are **member-level** attributes: BDN targets them at a field or property, never
      the class. They decorate the parameter field (e.g.
-     `[ParamsSource(nameof(Sizes))] private int _size;`), not the class declaration.
+     `[ParamsSource(nameof(Sizes))] public int _size;`), not the class declaration.
    - `[Benchmark]` on each measured method. `[Benchmark(Baseline = true)]` is reserved
      for a genuine A/B comparison of two implementations of the same operation (§5.9) —
      it is not used in the initial set.
@@ -669,7 +719,7 @@ public class CanonicalTupleStoreBenchmarks
     public static IEnumerable<int> Sizes => [DatasetSizes.Small, DatasetSizes.Medium];
 
     [ParamsSource(nameof(Sizes))]
-    private int _size;
+    public int _size;
     private InMemoryCanonicalTupleStore<BenchTuple> _store = null!;
     private List<Rid> _rids = null!;
     private BenchTuple _tuple = null!;
@@ -725,7 +775,7 @@ public class HeapStoreBenchmarks
     public static IEnumerable<int> Sizes => [DatasetSizes.Tiny, DatasetSizes.Small];
 
     [ParamsSource(nameof(Sizes))]
-    private int _size;
+    public int _size;
     private InMemoryCanonicalTupleStore<BenchTuple> _store = null!;
     private InMemoryHeapStoreProvider<BenchTuple> _heap = null!;
     private List<Rid> _rids = null!;
@@ -891,19 +941,21 @@ dotnet run --project PolyStore.Benchmarks -c Release -- --list flat
 dotnet run --project PolyStore.Benchmarks -c Release
 
 # Run one subject only.
-dotnet run --project PolyStore.Benchmarks -c Release -- --filter "CanonicalTupleStore"
+dotnet run --project PolyStore.Benchmarks -c Release -- --filter "*CanonicalTupleStore*"
 
-# Run one method.
-dotnet run --project PolyStore.Benchmarks -c Release -- --filter "TryGet"
+# Run one method. BDN's --filter is a GLOB matched against the full benchmark name
+# (namespace.Class.Method); * is a wildcard, so a bare name will not match.
+dotnet run --project PolyStore.Benchmarks -c Release -- --filter "*TryGet"
 
-# Export machine-readable results in addition to the default HTML.
-dotnet run --project PolyStore.Benchmarks -c Release -- --exporters csv,json,html
+# Export a machine-readable CSV (the default run already produces HTML + GitHub markdown).
+dotnet run --project PolyStore.Benchmarks -c Release -- --exporters csv
+# (BDN 0.15.8 takes a single exporter per run; use --exporters json for JSON.)
 
 # Within-run A/B comparison: available when a class marks one method [Baseline = true] and
 # compares another against it (see §5.9). The initial set has NO baselines — every method
 # is a standalone measurement; baselines appear only for a genuine A/B comparison. The ratio
 # is computed WITHIN this single run — BDN does not persist a baseline for a later run.
-dotnet run --project PolyStore.Benchmarks -c Release -- --filter "CanonicalTupleStore"
+dotnet run --project PolyStore.Benchmarks -c Release -- --filter "*CanonicalTupleStore*"
 ```
 
 **Result persistence.** BDN writes results under `BenchmarkDotNet.Artifacts/` by default,
@@ -1066,20 +1118,20 @@ The staged plan:
              10.0.x
        - name: Restore
          run: dotnet restore
-       # Smoke: small size only, short, non-gating. Exports a CSV for inspection.
-       # The filter is size-restricting: `RidBenchmarks` matches the RID micro-benchmark
-       # class (no size parameter) and `10000\b` matches the store benchmarks at exactly the
-       # 10k size — the `\b` word boundary keeps it from also matching the 100k size (`100000`).
-       # (Anchoring on the class name `RidBenchmarks` — not the bare substring `Rid` — keeps
-       # the RID match scoped to the micro-benchmark class rather than the heap's
-       # `EnumerateRids`/`EnumerateTuples` methods. BDN's --filter is a .NET regex matched
-       # against the benchmark display name, which embeds the parameter value; confirm the
-       # exact rendering in Phase 0.)
+       # Smoke: short, non-gating. Exports a CSV for inspection.
+       # BDN's --filter is a GLOB matched against the benchmark's base name
+       # (namespace.Class.Method) — verified against 0.15.8 in Phase 0. The size
+       # parameter is NOT in the filterable name (it appears as a `_size` table column
+       # but cannot be filtered), so a size-restricting filter is not possible with a
+       # single glob. The smoke therefore runs a small, size-independent subset: the
+       # RID micro-benchmarks (no size) and one store method at every size.
        - name: Run benchmark smoke (non-gating)
          continue-on-error: true
          run: |
            dotnet run --project PolyStore.Benchmarks -c Release \
-             -- --filter "(RidBenchmarks|10000\b)" --exporters csv
+             -- --filter "*RidBenchmarks*" --exporters csv
+             # (Optionally add a store method for a size-independent store smoke,
+             #  e.g. -- --filter "*TryGet" — this runs it at every configured size.)
        # EXTERNAL diffing (NOT a BDN built-in): compare the fresh CSV against the committed
        # baseline with a generous threshold (flag only > 5x regressions). Report only.
        - name: Diff against committed baseline (report only)
@@ -1263,7 +1315,7 @@ dependency; each is independently shippable and small (C1).
 **Phase 0 — Project skeleton + one benchmark (validates the toolchain).**
 Add `PolyStore.Benchmarks/` (csproj per §5.1), add it to `PolyStore.slnx`, add
 `Program.cs` (§5.8), and add `RidBenchmarks` (§5.6.1). Verify:
-`dotnet run --project PolyStore.Benchmarks -c Release -- --filter "Rid"` produces a BDN
+`dotnet run --project PolyStore.Benchmarks -c Release -- --filter "*RidBenchmarks*"` produces a BDN
 table with `Mean`, `Error`, `StdDev`, and `Allocated` columns. *Depends on: nothing.* This
 phase proves BDN + .NET 10 + the solution wiring before any fixture work.
 
