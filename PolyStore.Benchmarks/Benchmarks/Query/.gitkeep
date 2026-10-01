@@ -1,0 +1,2 @@
+# Reserved: relational query benchmarks.
+# Populated only once the query surface exists (see docs/design/benchmarking.md §5.2, C1).

@@ -3,5 +3,6 @@
     <Project Path="HelloWorld/HelloWorld.csproj" />
   </Folder>
   <Project Path="PolyStore.Tests/PolyStore.Tests.csproj" />
+  <Project Path="PolyStore.Benchmarks/PolyStore.Benchmarks.csproj" />
   <Project Path="PolyStore/PolyStore.csproj" />
 </Solution>

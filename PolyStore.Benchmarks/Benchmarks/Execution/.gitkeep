@@ -1,0 +1,2 @@
+# Reserved: end-to-end transaction/executor benchmarks.
+# Populated only once the executor exists (see docs/design/benchmarking.md §5.2, C1).
