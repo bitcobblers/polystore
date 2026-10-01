@@ -35,6 +35,7 @@ Produce the initial design proposal.
 
 The proposal should be complete enough to review and should include:
 
+- executive summary
 - problem statement
 - architectural context
 - requirements and constraints
@@ -44,6 +45,8 @@ The proposal should be complete enough to review and should include:
 - implications
 - assumptions
 - open questions
+
+Initially leave the executive summary as "TBD"
 
 Do not implement the feature.
 
@@ -164,7 +167,22 @@ Ask whether the approved proposal should be implemented.
 
 Do not begin implementation without explicit user approval.
 
-## Phase 7 — Implementation Handoff
+## Phase 7 — Executive Summary
+
+After human approval, update the Executive Summary of the proposal to reflect the final approved design.
+
+- limit it to 500 words.
+- include the problem, final decision, key design choices/invariants, scope boundaries, implementation phases, and unresolved questions.
+- do not introduce new design decisions, alternatives, recommendations, or concerns.
+- do not reopen design or review based on observations made while writing the summary.
+- keep explanations high-level whenever possible.
+- summarize only the final approved state; omit superseded decisions and review history.
+
+The detailed proposal remains authoritative if the summary and body conflict.
+
+After updating the Executive Summary, proceed directly to the implementation handoff.
+
+## Phase 8 — Implementation Handoff
 
 If the user approves the proposal for implementation:
 
