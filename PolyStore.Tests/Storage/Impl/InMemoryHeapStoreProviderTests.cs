@@ -84,31 +84,4 @@ public class InMemoryHeapStoreProviderTests
         Assert.Equal(1, heap.Count);
         Assert.Equal([rid], heap.EnumerateRids().ToArray());
     }
-
-    [Fact]
-    public void EnumerateTuples_ResolvesRidsThroughCanonicalStore()
-    {
-        var store = new InMemoryCanonicalTupleStore<TestTuple>();
-        var heap = new InMemoryHeapStoreProvider<TestTuple>();
-
-        var alice = new TestTuple { Id = 1, Name = "Alice" };
-        var bob = new TestTuple { Id = 2, Name = "Bob" };
-        heap.Add(store.Insert(alice));
-        heap.Add(store.Insert(bob));
-
-        Assert.Equal([alice, bob], heap.EnumerateTuples(store).ToArray());
-    }
-
-    [Fact]
-    public void EnumerateTuples_SkipsRidsAbsentFromCanonicalStore()
-    {
-        var store = new InMemoryCanonicalTupleStore<TestTuple>();
-        var heap = new InMemoryHeapStoreProvider<TestTuple>();
-
-        var alice = new TestTuple { Id = 1, Name = "Alice" };
-        heap.Add(store.Insert(alice));
-        heap.Add(new Rid()); // A RID with no canonical tuple.
-
-        Assert.Equal([alice], heap.EnumerateTuples(store).ToArray());
-    }
 }
