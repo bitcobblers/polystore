@@ -576,6 +576,13 @@ Tests should follow AAA standard with code grouped by their Arrange, Act, and As
 
 For bugs, add a regression test when practical.
 
+> Tests that verify observable behavior crossing an architectural boundary
+> (access path ↔ canonical store, expressions ↔ optimization, executor ↔ storage,
+> API ↔ engine, transaction ↔ propagation) live in
+> `PolyStore.IntegrationTests`. Unit and component tests live in
+> `PolyStore.Tests`. The decision rule and conventions are defined in
+> `docs/design/integration-testing.md`.
+
 ## Performance
 
 This is infrastructure code.
