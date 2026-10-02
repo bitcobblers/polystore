@@ -93,7 +93,7 @@ make the implementation pass validation.
 
 ## Responding to Findings
 
-You may receive findings from `review/feature-adversary` or
+You may receive findings from `code/test-adversary` or
 `review/code-reviewer`.
 
 For each finding:
@@ -146,7 +146,7 @@ Before completing:
 3. Correct implementation or ordinary-test failures caused by your changes.
 
 Adversarial validation remains the responsibility of
-`review/feature-adversary`.
+`code/test-adversary`.
 
 Do not claim that adversarial validation or final review has passed.
 

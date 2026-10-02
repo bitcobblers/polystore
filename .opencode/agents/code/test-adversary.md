@@ -137,7 +137,7 @@ Report:
 - the approved design requirement or invariant associated with each failure
 
 When returning `FAIL`, leave valid failing adversarial tests in place so
-`code/feature-implementer` can reproduce and correct the defect.
+`code/implementer` can reproduce and correct the defect.
 
 When returning `BLOCKED`, do not attempt to resolve the specification issue
 yourself.

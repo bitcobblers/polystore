@@ -35,42 +35,42 @@ The approved design is the feature specification.
 
 Use only the following subagents for implementation and review:
 
-1. `code/feature-implementer`
-2. `review/feature-adversary`
+1. `code/implementer`
+2. `code/test-adversary`
 3. `review/code-reviewer`
 
 Do not invoke subagents concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
 
 ### Initial implementation
 
-Invoke `code/feature-implementer` with:
+Invoke `code/implementer` with:
 - the approved design path
 - the feature branch
 - instructions to implement the design and its normal test suite
 
 ### Adversarial validation
 
-Invoke `review/feature-adversary` with:
+Invoke `code/test-adversary` with:
 - the approved design path
 - the feature branch
 
 If adversarial tests expose an implementation defect relative to the approved
-design, send the failures to `code/feature-implementer` for correction.
+design, send the failures to `code/implementer` for correction.
 
-If `code/feature-implementer` disputes that an adversarial failure represents
+If `code/implementer` disputes that an adversarial failure represents
 a requirement of the approved design, do not instruct it to change production
 behavior merely to satisfy the test. Treat the disagreement according to the
 Escalation rules.
 
 ### Final review
 
-When `review/feature-adversary` reports that all required tests pass, invoke `review/code-reviewer`.
+When `code/test-adversary` reports that all required tests pass, invoke `review/code-reviewer`.
 
 If the reviewer returns `CHANGES_REQUESTED`, send its findings to
-`code/feature-implementer`.
+`code/implementer`.
 
 After changes:
-1. invoke `review/feature-adversary` again;
+1. invoke `code/test-adversary` again;
 2. invoke `review/code-reviewer` again.
 
 A review cycle ends when `review/code-reviewer` returns a review result.
@@ -78,7 +78,7 @@ A review cycle ends when `review/code-reviewer` returns a review result.
 Allow at most 10 review cycles.
 
 Stop when:
-- `review/feature-adversary` reports that all required tests pass; and
+- `code/test-adversary` reports that all required tests pass; and
 - `review/code-reviewer` returns `APPROVED`.
 
 ## Escalation
