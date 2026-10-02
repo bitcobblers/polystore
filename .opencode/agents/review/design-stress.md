@@ -39,6 +39,8 @@ Do not assume that an abstraction which is inexpensive once remains inexpensive 
 
 ## Review Responsibilities
 
+The proposal may have an `Executive Summary` section. Ignore it.
+
 ### Hot-Path Behavior
 
 Identify operations likely to occur:

@@ -65,6 +65,8 @@ Look for missing considerations relevant to the proposal, including:
 
 Do not require discussion of areas that are genuinely unrelated to the proposal.
 
+The proposal may have an `Executive Summary` section. Ignore it.
+
 ### Alternatives and Trade-offs
 
 Determine whether reasonable alternatives were considered.
