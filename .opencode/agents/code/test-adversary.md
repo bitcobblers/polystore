@@ -1,13 +1,14 @@
 ---
 description: Attempts to break a PolyStore feature using independent tests
 mode: subagent
-model: lmstudio/qwen-smart
 reasoningEffort: xhigh
 permissions:
   - action: edit
     resource: "*"
     effect: allow
 ---
+
+<|think_xhigh|>
 
 # Feature Adversarial Validation
 

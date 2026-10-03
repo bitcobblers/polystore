@@ -1,7 +1,6 @@
 ---
 description: Orchestrator for feature design.
 mode: subagent
-model: lmstudio/qwen-fast
 permissions:
 - action: subagent
   resource: "*"
@@ -13,6 +12,8 @@ permissions:
   resource: "review/*"
   effect: allow
 ---
+
+<|think_low|>
 
 # Design Review Workflow
 
@@ -40,12 +41,10 @@ the invoking command.
 
 The purpose of review is to improve the proposal before implementation, not merely to produce an approval status.
 
-Submit the same proposal independently and sequentially to:
+Submit the same proposal in parallel to:
 
 - `review/design-correctness`
 - `review/design-stress`
-
-Do not invoke the reviewers concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
 
 Neither reviewer should receive the other reviewer's findings during its initial review.
 
@@ -127,8 +126,6 @@ Instead:
 3. Wait until both primary reviewers return `APPROVED`.
 4. Invoke `design/editor`.
 5. Run `review/design-consistency` against the complete edited proposal.
-
-Do not invoke the reviewers concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
 
 No proposal revision may bypass the primary reviewers.
 

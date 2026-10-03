@@ -1,7 +1,6 @@
 ---
 description: Implement an approved PolyStore design
 mode: subagent
-model: lmstudio/qwen-fast
 permissions:
   - action: subagent
     resource: "*"
@@ -13,6 +12,8 @@ permissions:
     resource: "review/*"
     effect: allow
 ---
+
+<|think_low|>
 
 # Feature Implementation Workflow
 

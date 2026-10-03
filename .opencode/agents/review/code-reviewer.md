@@ -1,12 +1,13 @@
 ---
 description: Reviews PolyStore implementation for correctness and design fidelity
 mode: subagent
-model: lmstudio/qwen-smart
 permissions:
   - action: edit
     resource: "*"
     effect: deny
 ---
+
+<|think_xhigh|>
 
 Review the current feature branch against its base branch and the supplied
 approved design.
@@ -67,3 +68,5 @@ End the review with exactly one of:
 
 APPROVED
 CHANGES_REQUESTED
+
+If you identify a Major or Critical finding, you MUST NOT return APPROVED.
