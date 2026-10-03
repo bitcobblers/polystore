@@ -1,7 +1,6 @@
 ---
 description: Design and review a proposed PolyStore feature
 agent: design/orchestrator
-model: lmstudio/qwen/qwen3.8-27b#low
 subagent: false
 ---
 

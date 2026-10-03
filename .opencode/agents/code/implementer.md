@@ -1,7 +1,7 @@
 ---
 description: Implements an approved PolyStore design
 mode: subagent
-model: lmstudio/qwen/qwen3.8-27b#medium
+model: lmstudio/qwen-worker
 permissions:
   - action: edit
     resource: "*"

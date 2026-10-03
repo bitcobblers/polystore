@@ -1,7 +1,7 @@
 ---
 description: Reviews PolyStore design proposals for correctness, completeness, and architectural fidelity
 mode: subagent
-model: lmstudio/qwen/qwen3.8-27b#xhigh
+model: lmstudio/qwen-smart
 permissions:
   - action: edit
     resource: "*"

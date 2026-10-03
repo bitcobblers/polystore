@@ -1,7 +1,6 @@
 ---
 description: Implement an approved PolyStore design
 agent: code/orchestrator
-model: lmstudio/qwen/qwen3.8-27b#low
 subagent: false
 ---
 

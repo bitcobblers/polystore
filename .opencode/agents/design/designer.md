@@ -1,7 +1,7 @@
 ---
 description: Researches PolyStore architecture and produces detailed feature design proposals
 mode: subagent
-model: lmstudio/qwen/qwen3.8-27b#xhigh
+model: lmstudio/qwen-smart
 permissions:
   - action: edit
     resource: "*"

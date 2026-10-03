@@ -1,7 +1,8 @@
 ---
 description: Attempts to break a PolyStore feature using independent tests
 mode: subagent
-model: lmstudio/qwen/qwen3.8-27b#xhigh
+model: lmstudio/qwen-smart
+reasoningEffort: xhigh
 permissions:
   - action: edit
     resource: "*"
