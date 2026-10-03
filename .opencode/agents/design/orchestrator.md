@@ -39,7 +39,8 @@ the invoking command.
 
 ## Phase 2 — Independent Review
 
-The purpose of review is to improve the proposal before implementation, not merely to produce an approval status.
+The purpose of review is to improve the proposal before implementation, not merely to produce an
+approval status.
 
 Submit the same proposal in parallel to:
 
@@ -71,7 +72,8 @@ The resulting document becomes the next proposal revision.
 
 ## Phase 4 — Re-review
 
-If either reviewer returned `CHANGES_REQUESTED`, submit the revised proposal to both reviewers again.
+If either reviewer returned `CHANGES_REQUESTED`, submit the revised proposal to both reviewers
+again.
 
 Provide each reviewer:
 
@@ -79,7 +81,8 @@ Provide each reviewer:
 - the findings from its previous review
 - a concise description of how those findings were addressed
 
-Do not provide one reviewer with the other reviewer's findings unless resolving a direct disagreement requires it.
+Do not provide one reviewer with the other reviewer's findings unless resolving a direct
+disagreement requires it.
 
 Repeat until:
 
@@ -88,7 +91,8 @@ Repeat until:
 
 Limit automated review to 5 cycles.
 
-If the proposal cannot obtain approval after 5 cycles, stop and present the unresolved findings to the user.
+If the proposal cannot obtain approval after 5 cycles, stop and present the unresolved findings to
+the user.
 
 Do not run the final consistency review while either primary reviewer still requests changes.
 
@@ -96,10 +100,13 @@ Do not run the final consistency review while either primary reviewer still requ
 
 Once BOTH `review/design-correctness` and `review/design-stress` return `APPROVED`:
 
-1. Invoke `design/editor` to make non-authoritative adjustments to the wording of the design for readability without changing its meaning.
+1. Invoke `design/editor` to make non-authoritative adjustments to the wording of the design for
+   readability without changing its meaning.
 2. After editing is complete, invoke `review/design-consistency` with the complete edited proposal.
 
-Its purpose is to detect cross-document contradictions, broken invariants, stale revision residue, identity/lifetime inconsistencies, and mismatches between the proposed design and its implementation plan.
+Its purpose is to detect cross-document contradictions, broken invariants, stale revision residue,
+identity/lifetime inconsistencies, and mismatches between the proposed design and its implementation
+plan.
 
 Do not ask the consistency reviewer to redesign the proposal.
 
@@ -117,7 +124,8 @@ If `review/design-consistency` returns `CHANGES_REQUESTED`:
 2. Have `design/designer` revise the proposal.
 3. Treat the resulting document as a new proposal revision.
 
-Because consistency fixes may alter architectural or performance properties, do NOT send the revised document directly back only to the consistency reviewer.
+Because consistency fixes may alter architectural or performance properties, do NOT send the revised
+document directly back only to the consistency reviewer.
 
 Instead:
 

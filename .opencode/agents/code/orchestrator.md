@@ -40,7 +40,8 @@ Use only the following subagents for implementation and review:
 2. `code/test-adversary`
 3. `review/code-reviewer`
 
-Do not invoke subagents concurrently. The local inference backend has limited capacity for multiple simultaneous long-context requests.
+Do not invoke subagents concurrently. The local inference backend has limited capacity for multiple
+simultaneous long-context requests.
 
 ### Initial implementation
 

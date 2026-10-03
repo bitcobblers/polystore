@@ -1,5 +1,6 @@
 ---
-description: Adds personality and readability to approved PolyStore design documents without changing technical meaning
+description: Adds personality and readability to approved PolyStore design documents without
+  changing technical meaning
 mode: subagent
 permissions:
   - action: edit
@@ -115,7 +116,8 @@ changing technical meaning.
 Replace the `TBD` Executive Summary with a summary of the final approved design.
 
 - limit it to 500 words.
-- include the problem, final decision, key design choices/invariants, scope boundaries, implementation phases, and unresolved questions.
+- include the problem, final decision, key design choices/invariants, scope boundaries,
+  implementation phases, and unresolved questions.
 - do not introduce new design decisions, alternatives, recommendations, or concerns.
 - do not reopen design or review based on observations made while writing the summary.
 - keep explanations high-level whenever possible.
@@ -147,7 +149,8 @@ When editing a passage, preserve all normative words and distinctions such as:
 
 Do not turn a requirement into a suggestion or a suggestion into a requirement.
 
-Add brief clarifying sentences only when they restate information already explicitly present elsewhere in the document
+Add brief clarifying sentences only when they restate information already explicitly present
+elsewhere in the document
 
 Do not introduce new terminology.
 
