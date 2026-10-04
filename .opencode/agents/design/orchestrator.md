@@ -11,6 +11,9 @@ permissions:
 - action: subagent
   resource: "review/*"
   effect: allow
+- action: skill
+  resource: 'concurrency.md'
+  effect: allow
 ---
 
 <|think_low|>
@@ -28,6 +31,7 @@ implementation approval:
 Read:
 1. `ARCHITECTURE.md`
 2. `AGENTS.md`
+3. Follow the `concurrency-rules` skill when delegating work.
 
 ## Phase 1 — Design
 
@@ -42,7 +46,7 @@ the invoking command.
 The purpose of review is to improve the proposal before implementation, not merely to produce an
 approval status.
 
-Submit the same proposal in parallel to:
+Submit the same proposal to:
 
 - `review/design-correctness`
 - `review/design-stress`

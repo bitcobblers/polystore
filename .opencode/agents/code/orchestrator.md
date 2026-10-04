@@ -11,6 +11,9 @@ permissions:
   - action: subagent
     resource: "review/*"
     effect: allow
+  - action: skill
+    resource: 'concurrency.md'
+    effect: allow
 ---
 
 <|think_low|>
@@ -31,6 +34,7 @@ Before delegating implementation:
 1. Read the approved design completely.
 2. Read `ARCHITECTURE.md` completely.
 3. Read `AGENTS.md` completely.
+4. Follow the `concurrency-rules` skill when delegating work.
 
 The approved design is the feature specification.
 
@@ -39,9 +43,6 @@ Use only the following subagents for implementation and review:
 1. `code/implementer`
 2. `code/test-adversary`
 3. `review/code-reviewer`
-
-Do not invoke subagents concurrently. The local inference backend has limited capacity for multiple
-simultaneous long-context requests.
 
 ### Initial implementation
 
@@ -64,7 +65,7 @@ a requirement of the approved design, do not instruct it to change production
 behavior merely to satisfy the test. Treat the disagreement according to the
 Escalation rules.
 
-### Final review
+### Review Cycle
 
 When `code/test-adversary` reports that all required tests pass, invoke `review/code-reviewer`.
 
@@ -77,11 +78,11 @@ After changes:
 
 A review cycle ends when `review/code-reviewer` returns a review result.
 
-Allow at most 10 review cycles.
-
 Stop when:
 - `code/test-adversary` reports that all required tests pass; and
 - `review/code-reviewer` returns `APPROVED`.
+
+Allow at most 10 review cycles.
 
 ## Escalation
 

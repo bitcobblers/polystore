@@ -158,8 +158,6 @@ properties from performance claims that require measurement.
 When performance depends on an empirical question, identify the required benchmark rather than
 asserting an unsupported conclusion.
 
-
-
 The `review/design-stress` will independently stress-test these decisions.
 
 Do not implement the feature.
@@ -184,6 +182,31 @@ Where appropriate, specify:
 - API changes
 - migration from existing abstractions
 - interaction with existing code
+
+### Size and Scope
+
+- Prefer the shortest proposal that completely communicates the design.
+- Do not restate the same decision in multiple sections.
+- Do not exhaustively enumerate obvious test cases, edge cases, or implementation
+  steps unless they materially affect the design.
+- Do not include illustrative code when a concise API signature or prose
+  description communicates the same decision.
+- Do not explain standard language/runtime behavior unless it is relevant to a
+  design decision, constraint, or identified risk.
+- Keep alternatives focused on options that were genuinely plausible.
+- Record important invariants and non-obvious consequences once, in the most
+  appropriate section.
+- Leave implementation mechanics to the implementation specification unless
+  they constrain the architecture.
+
+As a guideline, a routine bounded feature proposal should usually fit within
+roughly 300–500 lines. Exceed this only when the design genuinely requires the
+additional detail; do not expand the document merely to appear thorough.
+
+Before submitting, remove repetition, obvious material, speculative detail,
+and implementation-level content that does not affect a design decision.
+
+## Responding to Review
 
 Use code samples where they materially clarify the design.
 
@@ -263,11 +286,11 @@ Write the proposal using approximately this structure:
 
 ## Implementation Outline
 
-The `Executive Summary` should only contain TBD. Its content will be filled out at a later date.
+The `Executive Summary` section should only contain TBD. Its content will be filled out at a later date.
 
 Adapt the structure when appropriate. Do not create empty or irrelevant
-sections merely to follow the template, except for `Executive Summary`,
-which must remain present with `TBD` as its content.
+sections merely to follow the template with the exception of `Executive Summary`,
+which must have the content "TBD"
 
 ## Implementation Outline
 
@@ -278,35 +301,6 @@ This is an implementation plan, not authorization to implement it.
 Identify dependencies between phases where relevant.
 
 Do not modify source code.
-
-## Proposal Size and Detail
-
-The proposal is an architectural design document, not an implementation
-specification. Optimize for decision-relevant information and information
-density.
-
-- Prefer the shortest proposal that completely communicates the design.
-- Do not restate the same decision in multiple sections.
-- Do not exhaustively enumerate obvious test cases, edge cases, or implementation
-  steps unless they materially affect the design.
-- Do not include illustrative code when a concise API signature or prose
-  description communicates the same decision.
-- Do not explain standard language/runtime behavior unless it is relevant to a
-  design decision, constraint, or identified risk.
-- Keep alternatives focused on options that were genuinely plausible.
-- Record important invariants and non-obvious consequences once, in the most
-  appropriate section.
-- Leave implementation mechanics to the implementation specification unless
-  they constrain the architecture.
-
-As a guideline, a routine bounded feature proposal should usually fit within
-roughly 300–500 lines. Exceed this only when the design genuinely requires the
-additional detail; do not expand the document merely to appear thorough.
-
-Before submitting, remove repetition, obvious material, speculative detail,
-and implementation-level content that does not affect a design decision.
-
-## Responding to Review
 
 You may receive findings from `review/design-correctness` and `review/design-stress`.
 
