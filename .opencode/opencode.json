@@ -1,13 +1,31 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "lmstudio/qwen",
-  "providers": {
-    "lmstudio": {
+  "model": "llama/qwen#medium",
+  "provider": {
+    "llama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama.cpp",
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "not-needed"
+      },
       "models": {
         "qwen": {
-          "modelID": "qwen3.8-27b-mtp",
+          "modelID": "qwen3.8-27b",
           "limit": {
-            "context": 131072
+            "context": 262144,
+            "output": 32768
+          },
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "medium": {
+              "reasoningEffort": "medium"
+            },
+            "xhigh": {
+              "reasoningEffort": "xhigh"
+            }
           }
         }
       }

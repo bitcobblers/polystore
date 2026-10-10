@@ -1,13 +1,12 @@
 ---
 description: Reviews PolyStore implementation for correctness and design fidelity
 mode: subagent
+model: llama/qwen#xhigh
 permissions:
   - action: edit
     resource: "*"
     effect: deny
 ---
-
-<|think_xhigh|>
 
 Review the current feature branch against its base branch and the supplied
 approved design.
