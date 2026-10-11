@@ -49,6 +49,10 @@ unlikely to change the recommendation or expose a material unresolved risk.
 Investigation breadth does not determine document length.
 Report conclusions and supporting evidence, not an exploration transcript.
 
+Before prescribing a custom parser, codec, or conversion algorithm,
+check whether an existing platform API satisfies the required contract.
+Explain any material gap before choosing custom implementation.
+
 ## Design Responsibilities
 
 Establish:
@@ -167,6 +171,12 @@ Before completion, remove repetition, superseded text, and passages that
 do not establish a decision, constraint, rationale, or material consequence.
 
 Do not shorten the document by deleting necessary guarantees.
+
+Do not repeat a contract in the design, risks, validation, and
+implementation outline. Reference its authoritative definition.
+
+Omit resolved-question history, process identifiers, and lengthy
+rejections of interfaces with no plausible current consumer.
 
 ## Responding to Review
 

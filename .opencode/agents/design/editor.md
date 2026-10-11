@@ -87,6 +87,9 @@ a specific problem.
 Read the complete document again only when broad restructuring makes
 local verification insufficient.
 
+Do not strengthen a technical judgment through humor.
+Preserve legitimate trade-offs when making prose more entertaining.
+
 ## Completion
 
 Report concisely:

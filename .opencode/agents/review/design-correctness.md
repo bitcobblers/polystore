@@ -61,6 +61,10 @@ or transactions only as needed to establish these guarantees.
 
 Do not require an exhaustive test inventory or implementation recipe.
 
+Verify that a stated rationale actually entails the recommended decision.
+
+Distinguish necessary consequences from independent policy choices.
+
 ## Alternatives and Trade-offs
 
 Verify that the recommendation follows from the requirements and relevant
@@ -90,6 +94,20 @@ Do not require extension points solely for hypothetical future features.
 - Check APIs and examples against existing types and usages.
 - Flag misleading contracts or APIs that cannot express required behavior.
 - Do not report formatting or stylistic preferences as correctness findings.
+
+For each proposed interface implementation, verify every required
+member and inherited contract against authoritative declarations.
+Compare the required members with the proposed API and validation plan.
+
+Before prescribing a custom parser, codec, or conversion algorithm,
+check whether an existing platform API satisfies the required contract.
+Explain any material gap before choosing custom implementation.
+
+For round-trip contracts, consider independent known-answer cases.
+Check that tests can detect mutually consistent encoder/decoder mistakes.
+
+Evaluate testability against the proposed public API, not only the
+API that exists before the change.
 
 ## Domain Boundaries
 

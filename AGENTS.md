@@ -800,3 +800,23 @@ For a normal implementation task, completion generally means:
 * no unrelated speculative framework was added.
 
 If one of these could not be completed, state which one and why.
+
+## Tool Usage
+
+Use the exposed file-reading tool for file contents and line ranges.
+Do not import node:fs or use Node.js filesystem APIs inside execute.
+
+If text processing is needed, first obtain the text through an exposed
+tool, then use supported string, array, and regex operations.
+
+Do not assume a tool is unavailable without checking the tool documentation.
+If no permitted tool can perform the operation, report the limitation.
+
+The `execute` tool uses a restricted JavaScript-like runtime, not Node.js.
+Do not use imports, require(), or Node.js filesystem/process APIs.
+
+Use the tools exposed by the runtime according to its tool documentation.
+For local commands, use the shell tool only when permitted.
+
+After an unsupported-syntax error, rewrite the call using supported
+tools and syntax rather than retrying the same approach.

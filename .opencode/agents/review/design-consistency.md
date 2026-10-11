@@ -65,6 +65,9 @@ Verify that:
 Distinguish a missing material decision from implementation freedom.
 Do not require the document to prescribe every implementation detail.
 
+Check universal and exclusivity claims against the proposal's own
+exceptions and accepted inputs.
+
 ## Implementation Outline
 
 When an implementation outline is present, verify that:
@@ -76,6 +79,9 @@ When an implementation outline is present, verify that:
 - deferred work is not required by an earlier phase.
 
 Do not require one phase per component or an exhaustive task inventory.
+
+Cross-check declared interfaces, API members, implementation steps,
+and validation coverage for omissions or disagreements.
 
 ## Revision and Editorial Integrity
 
