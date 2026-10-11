@@ -47,12 +47,7 @@ Distinguish verified facts, design assumptions, and unresolved questions.
 - **Minor:** A localized clarification or improvement that does not
   prevent correct implementation.
 
-Blocking or Major findings require CHANGES_REQUESTED.
-
-Minor findings alone do not prevent approval.
-
-If several minor observations expose a material problem, report
-that underlying problem as a Major finding.
+All findings require CHANGES_REQUESTED.
 
 ## Findings
 

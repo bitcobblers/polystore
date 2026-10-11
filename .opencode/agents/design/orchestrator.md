@@ -56,13 +56,14 @@ present the decision to the user rather than forcing speculative design.
 Submit the same unchanged proposal revision sequentially to:
 
 1. `review/design-correctness`
-2. `review/design-concurrency`
-3. `review/design-security`
-4. `review/design-stress`
+2. `review/design-contract-adversary`
+3. `review/design-concurrency`
+4. `review/design-security`
+5. `review/design-stress`
 
 Do not give reviewers other reviewers' findings during initial review.
 
-Wait for all four reviews before permitting proposal edits.
+Wait for all five reviews before permitting proposal edits.
 Record each disposition and its associated revision.
 
 ## Phase 3 — Reconciliation
@@ -94,7 +95,7 @@ Do not adjudicate architectural decisions yourself.
 ## Phase 4 — Re-review
 
 Whenever reconciliation changes the proposal, submit the complete revised
-proposal to all four technical reviewers sequentially.
+proposal to all five technical reviewers sequentially.
 
 Provide each reviewer:
 
@@ -114,7 +115,7 @@ the unchanged revision remain valid.
 Follow the shared repair budget and escalation rules.
 Re-review within a repair round does not itself consume another round.
 
-Proceed only when all four technical reviewers approve the current revision.
+Proceed only when all five technical reviewers approve the current revision.
 
 ## Phase 5 — Editing and Consistency Review
 
@@ -125,7 +126,7 @@ Invoke `design/editor` with:
 
 Before editing, require the editor to copy the complete proposal,
 unchanged, to the snapshot path using the exposed file tools.
-The snapshot must reflect the revision approved by all four reviewers.
+The snapshot must reflect the revision approved by all five reviewers.
 
 Do not begin editing unless snapshot creation succeeds.
 Never edit the snapshot.
@@ -160,7 +161,7 @@ and shared repair budget.
 
 If the proposal changes during correction:
 
-1. Obtain approval from all four technical reviewers again.
+1. Obtain approval from all five technical reviewers again.
 2. Invoke the editor.
 3. Repeat consistency review.
 
@@ -171,7 +172,7 @@ Do not bypass unresolved findings or reset the repair budget.
 
 ## Phase 6 — Human Approval
 
-After all four technical reviewers approve the pre-edit revision and
+After all five technical reviewers approve the pre-edit revision and
 consistency review approves the final edited revision, present:
 
 - final proposal path;
@@ -184,4 +185,7 @@ consistency review approves the final edited revision, present:
 Ask whether the proposal should be implemented.
 
 Automated review approval is not human implementation authorization.
+
 Do not begin implementation from this workflow.
+
+Ensure that all pre-edit files have been deleted.

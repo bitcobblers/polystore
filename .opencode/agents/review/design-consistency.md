@@ -74,6 +74,9 @@ and compatibility guarantees are described distinctly.
 Review absolute claims such as "cannot", "only", "unchanged", and
 "no risk" against the document's own examples and exceptions.
 
+When compatibility is claimed, identify what remains compatible, across which
+changes, and for which consumers.
+
 ## Implementation Outline
 
 When an implementation outline is present, verify that:
