@@ -1,822 +1,288 @@
 # AGENTS.md
 
-This file provides instructions for coding agents working in the PolyStore
-repository.
+Instructions for agents working in PolyStore. Read `ARCHITECTURE.md` before
+non-trivial work. Preserve explicit contracts and keep implementations small.
 
-PolyStore is an early-stage storage-engine and relational-dataflow project.
-Correct architectural reasoning is more important than maximizing the amount
-of code produced.
+## 1. Authority and Required Context
 
-Read `ARCHITECTURE.md` before making non-trivial changes.
+Before designing, implementing, or reviewing:
 
-## Primary Rule
+1. Read the user request and exact feature design supplied for the task.
+2. Read this file and `ARCHITECTURE.md`.
+3. Inspect relevant source, usages, project configuration, and tests.
+4. Read overlapping designs where they affect a contract.
+5. Separate implemented behavior, declared APIs, intended changes, and open decisions.
 
-Do not silently invent architecture.
+| Evidence | Authority |
+| --- | --- |
+| Explicit user direction | Scope and authorized changes, including superseding earlier decisions. |
+| Current source and observable behavior | What exists now. Signatures, comments, and samples do not prove missing runtime behavior. |
+| `ARCHITECTURE.md` | Repository-wide constraints and the labeled distinction between current state, intent, and open decisions. |
+| Exact human-approved design revision | Feature requirements and deliberate baseline changes, subject to repository-wide constraints unless explicitly superseded. |
+| Drafts, older designs, and examples | Context; not authority to invent or restore behavior. |
 
-If a requested change touches an unresolved architectural area, implement only
-what can be justified from the existing design and clearly identify assumptions.
+Do not let stale documentation override source facts. Do not treat source as
+proof that its behavior is correct when the task is to change it. If an
+approved design conflicts with architectural constraints, report the conflict
+instead of silently choosing an interpretation.
 
-Prefer a small coherent implementation over a broad speculative framework.
+Do not infer approval from a filename, reviewer verdict, or proposal status
+header. Use the invoking workflow's identified human-approved revision.
 
-## Project Context
+## 2. Clarifying Architectural Ambiguity
 
-PolyStore is a C#-first relational/dataflow storage system.
+Designers and implementers must request human clarification when a missing or
+contradictory decision materially changes semantics. Examples include RID
+scope, source-instance aliasing, null/absence behavior, mutation targeting,
+transaction visibility, and supported schema/CLR conversion.
 
-Important concepts include:
+First inspect relevant source and supplied designs enough to rule out a
+routine lookup or implementation choice. Then report:
 
-* `IRelation<T>` as the core logical relation abstraction;
-* `ISource<T>` for mutable ingress relations;
-* transactional propagation through relation dependencies;
-* strong internal consistency despite asynchronous execution;
-* transaction-version-aware reads;
-* logical relations separated from physical realization;
-* relation-scoped storage accessors;
-* multiple storage providers;
-* LINQ-oriented query construction;
-* `IAsyncEnumerable<T>` for asynchronous query sequences.
+- Conflicting statements or the missing contract, with file locations.
+- The smallest concrete example showing why the choice matters.
+- Plausible interpretations and a recommendation where supported.
+- Which work depends on the answer.
 
-Do not reinterpret the project as a conventional repository/service CRUD
-framework.
+Ask the human directly, or route through the invoking orchestrator if the
+agent cannot ask directly. Continue independent work where possible; leave
+dependent decisions unresolved. Do not mark a proposal implementation-ready
+or encode an assumption in tests while required semantics remain ambiguous.
 
-## Feature Workspaces
+Routine local choices do not require escalation. Choose the smallest approach
+consistent with established contracts. Adding `IParsable<Rid>`, for example,
+is a public API decision, not an automatic consequence of a formatting task.
 
-Feature work should normally be performed in an isolated Git worktree rather
-than directly in the primary checkout.
+## 3. Current Baseline and Storage Reset
 
-This is particularly important when multiple developers or coding agents may
-work on the repository concurrently. Each feature should have its own branch,
-working directory, build artifacts, and uncommitted state.
+At the 2026-10-11 reconciliation baseline (`e910c86`):
 
-The primary checkout should remain clean and should not be used as scratch
-space for feature implementation.
+- `Rid` is a GUID-v7-backed readonly struct with equality, hashing, and `"N"`
+  string formatting. It has no parsing or span-formatting API.
+- Heap/B-tree classes are generic authoring stubs; their configuration methods
+  do not record or realize anything.
+- No canonical-store interface, store implementation, key-schema primitives,
+  runtime tuple/schema model, query provider, planner, executor, or transaction
+  implementation exists.
+- Both xUnit projects exist but contain no C# tests. Only RID benchmarks remain.
 
-### Creating a Workspace
+Verify the current checkout rather than assuming this inventory stays fixed.
+The stores were removed deliberately. Do not restore generic stores/accessors,
+removed key types, or their tests merely to satisfy an obsolete proposal.
+Replacement storage must follow an approved tuple/schema contract.
 
-Before starting feature work, synchronize the primary checkout:
+The tuple proposal requires revision before implementation. Integration and
+benchmark designs/READMEs contain removed-code examples. Use applicable
+conventions, but reconcile source claims before using them as specifications.
+`ARCHITECTURE.md` identifies this known drift.
 
-```bash
-git switch main
-git pull --ff-only
-```
+## 4. Feature Workspaces and Ownership
 
-Create a feature branch and corresponding worktree from the current `main`:
+Use an isolated branch/worktree unless the invoking workflow already supplies
+a workspace. Reuse an assigned tree; do not create nested worktrees per
+subagent. Design-only tasks may use their supplied document path without
+creating a worktree.
 
-```bash
-git worktree add -b <branch-name> ../<workspace-name> main
-```
-
-For example:
-
-```bash
-git worktree add -b feat/transaction-context ../polystore-transaction-context main
-```
-
-Then perform all work for that feature from the new workspace:
-
-```bash
-cd ../polystore-transaction-context
-```
-
-Do not switch the worktree to an unrelated branch or reuse it for unrelated
-feature work.
-
-### Branch Naming
-
-Use short, descriptive branch names consistent with the purpose of the change.
-
-Examples:
-
-```text
-feat/transaction-context
-feat/relation-accessors
-fix/async-scan-cancellation
-refactor/query-expression-visitor
-test/transaction-visibility
-docs/storage-architecture
-```
-
-Avoid generic branch names such as:
-
-```text
-changes
-work
-agent
-test
-feature
-wip
-```
-
-The branch name should make it possible to identify the purpose of a workspace
-without inspecting its contents.
-
-### Workspace Initialization
-
-After creating the worktree, restore and verify the repository before making
-changes:
-
-```bash
-dotnet restore
-dotnet build
-dotnet test
-```
-
-This establishes that the starting revision is healthy.
-
-If the baseline build or tests fail, determine whether the failure already
-exists before modifying code. Do not silently attribute a pre-existing failure
-to feature work or attempt unrelated repairs unless they are required to
-proceed.
-
-### Workspace Isolation
-
-Treat each worktree as an independent unit of work.
-
-Do not:
-
-* share uncommitted changes between worktrees;
-* copy partially modified source files between worktrees;
-* make unrelated changes in another feature's workspace;
-* use `git stash` as the normal mechanism for moving between features;
-* switch branches merely to begin unrelated work when a separate worktree is appropriate.
-
-If another feature contains work that is required by the current feature,
-prefer an explicit Git operation such as merging, rebasing, or cherry-picking
-the relevant commit rather than copying files manually.
-
-This keeps dependencies between concurrent changes visible in repository history.
-
-### Working With Multiple Agents
-
-When multiple agents are working concurrently, each agent should operate in
-its own worktree unless the agents are deliberately collaborating on the same
-working tree.
-
-Do not assume that another agent's uncommitted changes are available.
-
-Do not modify another agent's workspace.
-
-Do not create commits containing changes that originated in another workspace
-unless those changes were intentionally incorporated through Git.
-
-A useful mapping is:
-
-```text
-task
-  -> branch
-      -> worktree
-          -> agent
-```
-
-This allows independent features, experiments, and refactors to proceed
-without branch switching, stashing, or accidental interference.
-
-### Keeping a Workspace Current
-
-Feature branches may need to incorporate changes from `main`.
-
-First update `main` from the primary checkout:
+Inspect `git status` first. Preserve user changes. Do not switch branches,
+pull into a dirty checkout, or overwrite unrelated work. From a clean primary
+checkout, normal setup is:
 
 ```bash
 git switch main
 git pull --ff-only
+git worktree add -b <descriptive-branch> ../<workspace-name> main
 ```
 
-Then, from the feature workspace, incorporate the updated `main` using the
-repository's current integration policy.
+Use descriptive names such as `feat/runtime-tuples`, `fix/rid-formatting`, or
+`docs/reconcile-architecture`. Work only in the assigned tree. Incorporate
+dependencies through explicit Git operations rather than copying partially
+modified files. Do not rewrite shared history or force-delete worktrees/branches.
 
-For an unpublished local feature branch, rebasing is generally appropriate:
+When concurrent work is explicitly assigned, use separate trees for independent
+writers unless shared-tree collaboration is intentional. Follow the invoking
+workflow's delegation/permissions; this file does not instruct agents to launch
+additional agents. Reviewers must not edit reviewed implementations unless
+explicitly assigned that role.
+
+## 5. Architecture and Generic Boundaries
+
+Keep logical relations, execution values/layouts, canonical stored records,
+and access-path entries distinct.
+
+Generics belong at typed authoring/registration/conversion boundaries. Current
+relation, source, and path declarations remain valid authoring surfaces.
+Dynamic-schema physical storage/execution must not require a CLR entity `T`
+per record or operator. Do not introduce generic `ICanonicalTupleStore<T>`,
+generic physical accessors, or a generic storage provider as a default pattern.
+
+Do not invent schema, codec, registry, capability-interface, or plugin frameworks
+without an approved requirement. Stubs do not justify parallel abstractions.
+Avoid unnecessary constraints, inheritance, interfaces, service locators,
+and global mutable state.
+
+Keep logical APIs independent of specific backends or physical formats. Use
+established terms: relation, source, access path, RID, canonical record,
+execution tuple, and transaction. Do not recast PolyStore as a CRUD framework.
+
+## 6. Identity, Provenance, and Query Semantics
+
+A relation can occur more than once in a query. Provenance must distinguish
+bound relation instances, not merely CLR types or names. Do not assign
+identities opportunistically at executing joins or infer RID scope from its value.
+
+Hidden RID columns are a proposed direction, not an implemented layout. Do
+not turn that proposal into an API without the required design. Distinguish
+absent outer-join sources, SQL nulls, and unavailable attributes. Do not assume
+a default RID is an absence sentinel or every operator preserves provenance.
+Hidden identity must not change user-visible equality, grouping, or set semantics.
+
+When physical constraints are implemented, honor them or diagnose failure.
+Do not silently replace required paths/operators, skip unresolved RIDs, or
+ignore unsupported expression nodes. A fallback needs a contract and
+observable behavior.
+
+No query provider/executor currently implements the interfaces. LINQ/sample
+syntax does not establish PolyStore translation support. Design DML around
+expression-tree capabilities and explicit target identity; do not assume
+arbitrary C# statements can be captured.
+
+## 7. Async, Transactions, and Propagation
+
+Use `IAsyncEnumerable<T>` for naturally streaming async results. Choose
+`ValueTask`/`Task` according to the operation and preserve cancellation.
+Do not replace streaming with buffered collections for convenience.
+
+Source mutation and required dependent maintenance share a coherent committed
+transaction boundary. Do not add fire-and-forget propagation after commit or
+APIs bypassing the transaction contract. Dependency order, cycles, failures,
+rollback, visibility, backpressure, and bounded memory need defined behavior
+when those features are implemented.
+
+`Define` and `Propagate` have signatures but no engine wiring. `Change<T>` and
+`RelationChange<T>` are distinct; do not conflate them. Empty propagation
+results may be valid and must not trigger implicit recomputation. Do not invent
+MVCC/as-of-read semantics from the current transaction interface.
+
+## 8. Coding Style and Scope
+
+Follow nearby code and `.editorconfig`: four spaces in C#, LF endings, final
+newlines, and no trailing whitespace. Nullable annotations are enabled.
+Implicit usings are disabled in the library/benchmarks and enabled in the
+test/sample projects. Release builds treat warnings as errors.
+
+Prefer immutable/value-like representations where appropriate, small methods,
+and expression bodies when clear. Avoid hot-path reflection unless cached or
+justified, unnecessary dependencies, unrelated refactors, and speculative
+infrastructure. Check platform APIs before writing custom parsers/codecs.
+
+Implement the supplied feature, necessary integration, and meaningful
+validation. Do not settle deferred questions, widen the public surface for
+hypothetical use, or rewrite an approved design to fit code. Prototypes may
+simplify implementation but must identify compromises and preserve boundaries.
+
+## 9. Tests and Benchmarks
+
+Use xUnit. Unit/component tests belong in `PolyStore.Tests`, mirroring the
+production subsystem layout. Integration tests belong in
+`PolyStore.IntegrationTests` when observable behavior depends on interaction
+across an implemented architectural boundary.
+
+Use `<Subject>Tests` for unit classes, and `<ComponentA><ComponentB>BridgeTests`
+or `<Scenario>Tests` for integration classes. Namespaces mirror folders.
+Group Arrange/Act/Assert clearly; keep fixtures local and deterministic where
+practical. Test public semantics rather than private state or incidental calls.
+
+Cover requirements, meaningful boundary/failure cases, cancellation, and
+regressions as applicable. Do not test stubs as though they implement engine
+semantics, weaken valid adversarial tests, or assert unspecified behavior.
+Report specification disputes to the invoking workflow.
+
+Use BenchmarkDotNet in `PolyStore.Benchmarks` for performance claims. The
+runner discovers workloads from the assembly and writes to `artifacts/`.
+Use `<Subject>Benchmarks`, `[MemoryDiagnoser]`, and a relevant category. Build
+fixtures outside measured operations and keep mutable workloads repeatable.
+Add shared support only for current workloads; do not restore deleted fixtures
+because a README lists them.
+
+Existing RID workload:
 
 ```bash
-git rebase main
+dotnet run --project PolyStore.Benchmarks/PolyStore.Benchmarks.csproj -c Release -- --filter "*RidBenchmarks*"
 ```
 
-Resolve conflicts deliberately. Do not automatically choose one side of an
-architectural conflict merely to complete the rebase.
+Avoid blind micro-optimization. Separate analytical expectations from
+measurements; harnesses alone prove neither correctness nor performance.
 
-After rebasing or merging, run:
+## 10. Build and Validation
+
+Use .NET 10 and `PolyStore.slnx`. CI installs `10.0.x`; `global.json` currently
+contains the literal SDK version `10.0.1xx` with `latestFeature` roll-forward.
+If SDK resolution fails, report the configuration error rather than silently
+changing the pin.
+
+For code changes, establish the baseline and run appropriate checks:
 
 ```bash
-dotnet build
-dotnet test
+dotnet restore PolyStore.slnx
+dotnet format PolyStore.slnx --no-restore --verify-no-changes
+dotnet build PolyStore.slnx --no-restore --configuration Debug
+dotnet test PolyStore.slnx --no-restore --configuration Debug
 ```
 
-### Completing Feature Work
-
-Before considering the workspace complete:
-
-```bash
-git status
-dotnet build
-dotnet test
-```
-
-Review the final diff:
-
-```bash
-git diff main...HEAD
-```
-
-The workspace should contain only changes relevant to its feature.
-
-Check specifically for:
-
-* accidental formatting changes;
-* generated files;
-* debugging code;
-* temporary instrumentation;
-* unrelated refactors;
-* editor-specific files;
-* commented-out experiments.
-
-Commit the completed work using the repository's conventional commit style.
-
-### Removing a Workspace
-
-Once the branch has been integrated and the workspace is no longer needed,
-remove the worktree from the primary checkout:
-
-```bash
-git worktree remove ../<workspace-name>
-```
-
-Then prune stale worktree metadata if necessary:
-
-```bash
-git worktree prune
-```
-
-Delete the local branch only after confirming that its work has been safely
-integrated:
-
-```bash
-git branch -d <branch-name>
-```
-
-Never force-delete a branch merely to make workspace cleanup succeed.
-
-### Agent Responsibility
-
-An agent creating a feature workspace owns that workspace for the duration of
-the task.
-
-Before reporting completion, the agent should be able to identify:
-
-* the workspace it used;
-* the branch containing the work;
-* the commits it created;
-* the build/test status;
-* any dependency on changes from another branch.
-
-Workspace isolation is a correctness mechanism, not merely a convenience. It
-should make parallel development safer and make the provenance of every change
-obvious.
-
-## Before Editing
-
-Before making a meaningful change:
-
-1. Read the relevant implementation.
-2. Read nearby tests.
-3. Read `ARCHITECTURE.md`.
-4. Search for existing interfaces or terminology before introducing new ones.
-5. Determine whether the requested work changes an architectural invariant.
-
-Do not generate parallel abstractions merely because the existing
-implementation is incomplete.
-
-## Build and Test
-
-The repository targets modern .NET.
-
-At minimum, validate changes using:
-
-```bash
-dotnet build
-dotnet test
-```
-
-If the repository provides a solution file, prefer building and testing the
-solution.
-
-Do not claim a change is complete if the relevant tests were not run.
-
-If tests cannot run because of environment limitations, state that explicitly.
-
-## Coding Style
-
-Follow the existing repository style.
-
-General preferences:
-
-* nullable reference types enabled;
-* explicit cancellation support for potentially long-running async operations;
-* immutable types where practical;
-* records or readonly structs for value-like data;
-* small interfaces with meaningful semantics;
-* avoid interfaces unless it's expected to be implemented more than once.
-* avoid unnecessary inheritance;
-* avoid service-locator patterns;
-* avoid global mutable state;
-* avoid reflection in hot paths unless cached or otherwise justified.
-* use expression bodies when possible over code blocks for function implementations.
-
-Do not introduce a dependency merely to save a small amount of implementation code.
-
-## Naming
-
-Use terminology already established by the architecture.
-
-Preferred terms include:
-
-```text
-Relation
-Source
-Change
-Transaction
-Accessor
-StorageProvider
-Realize
-Projection
-Derived relation
-```
-
-Be cautious about introducing alternate terms such as:
-
-```text
-Repository
-EntitySet
-Collection
-DAO
-Manager
-Handler
-Store
-```
-
-unless they describe a genuinely different concept.
-
-In particular, do not rename relations to repositories or entities merely
-because those terms are more common in application frameworks.
-
-## Generic Design
-
-Generics should normally be scoped to the relation value type.
-
-Preferred:
-
-```csharp
-IRelation<T>
-RelationChange<T>
-IRelationAccessor<T>
-IScanAccessor<T>
-ISeekAccessor<T>
-IWriteAccessor<T>
-```
-
-Database-wide abstractions should generally remain non-generic.
-
-Preferred:
-
-```csharp
-public interface IStorageProvider
-{
-    IRelationAccessor<T> CreateAccessor<T>(...);
-}
-```
-
-Avoid unnecessary constraints such as:
-
-```csharp
-where T : class
-```
-
-unless required by a concrete semantic reason.
-
-## Async APIs
-
-PolyStore is asynchronous where I/O or streaming may occur.
-
-For asynchronous sequences, prefer:
-
-```csharp
-IAsyncEnumerable<T>
-```
-
-Do not return:
-
-```csharp
-Task<IEnumerable<T>>
-```
-
-when results can naturally be streamed.
-
-Always consider cancellation.
-
-For example:
-
-```csharp
-IAsyncEnumerable<T> ExecuteAsync(
-    CancellationToken cancellationToken = default);
-```
-
-Do not convert streaming APIs into buffered collections for implementation
-convenience.
-
-## Transactions
-
-Treat transaction semantics as an architectural concern.
-
-Do not implement a mutation API that bypasses the transaction model.
-
-Do not assume a transaction is simply:
-
-```csharp
-DbTransaction
-```
-
-or another storage-provider-specific transaction object.
-
-A PolyStore transaction may coordinate:
-
-* source mutations;
-* relation change propagation;
-* derived relation maintenance;
-* physical persistence;
-* committed transaction identity;
-* version-consistent reads.
-
-When adding transactional behavior, inspect downstream effects across the
-relation graph.
-
-## Consistency
-
-Do not introduce eventual consistency between internally maintained PolyStore
-relations unless explicitly requested by the architecture.
-
-An async handoff is not permission for downstream state to become visible
-later than upstream state.
-
-This is an important invariant.
-
-Code resembling:
-
-```text
-commit source
-queue index update
-return success
-```
-
-is suspect for internally managed relations.
-
-If asynchronous propagation requires staging or versioning, preserve a
-coherent committed transaction boundary.
-
-## Dataflow
-
-Relations may depend on other relations.
-
-Changes should propagate through this graph.
-
-Do not model an index, projection, or materialized view as an unrelated side
-cache if it is logically part of the PolyStore relation graph.
-
-When adding graph execution:
-
-* consider dependency ordering;
-* consider cycles;
-* consider failure propagation;
-* consider transaction visibility;
-* consider backpressure;
-* consider bounded memory usage.
-
-## Query Translation
-
-Do not implement a large custom optimizer without a concrete requirement.
-
-When targeting an established database backend, prefer using the backend's
-planner where feasible.
-
-Generated backend queries must remain inspectable.
-
-Do not create abstractions that make it difficult to determine what SQL or
-equivalent backend operation will actually execute.
-
-## Parametric SQL
-
-Optional query parameters may require structural query changes.
-
-Do not automatically implement optional filters as:
-
-```sql
-WHERE (@value IS NULL OR column = @value)
-```
-
-if the architecture expects the filter to disappear from the generated query.
-
-A parameter may affect:
-
-* predicates;
-* joins;
-* CTEs;
-* subqueries;
-* aggregations;
-* selected relations.
-
-Treat parametric query generation as a structural problem.
-
-## Storage Abstractions
-
-Do not couple logical relation behavior directly to PostgreSQL, SQLite, or
-another prototype backend.
-
-A backend may implement storage capabilities, but the logical architecture
-should remain provider-independent.
-
-Keep the distinction between:
-
-```text
-logical relation
-physical accessor
-storage provider
-```
-
-### Accessor Capabilities
-
-Prefer explicit capability interfaces.
-
-For example:
-
-```csharp
-IRelationAccessor<T>
-IScanAccessor<T>
-ISeekAccessor<T>
-IWriteAccessor<T>
-```
-
-Do not add methods to a universal accessor merely because one backend supports
-them.
-
-The absence of a capability should be representable.
-
-## Schema and Discovery
-
-Avoid requiring duplicate relation declarations.
-
-Do not introduce a central class containing one property per relation unless
-there is a compelling architectural reason.
-
-Prefer mechanisms such as:
-
-* DI registration;
-* explicit registration APIs;
-* attributes;
-* generated metadata;
-* validated reflection during bootstrap.
-
-Avoid undocumented naming conventions.
-
-Inference should be conservative and deterministic.
-
-## Scope Control
-
-Agents tend to overproduce infrastructure. Do not do that here.
-
-When asked to implement one component:
-
-* do not add unrelated factories;
-* do not create multiple layers of abstraction "for the future";
-* do not introduce a generic plugin system unless required;
-* do not rewrite neighboring code solely for stylistic consistency;
-* do not create public APIs for speculative use cases.
-
-A useful heuristic:
-
-> Introduce an abstraction when at least one current architectural boundary
-> requires it, not merely because a future implementation might.
-
-## Tests
-
-Prefer tests that establish semantics rather than implementation details.
-
-Good tests include:
-
-* relation capability behavior;
-* transaction visibility;
-* propagation ordering;
-* query translation;
-* cancellation;
-* streaming behavior;
-* failure rollback;
-* version-consistent reads.
-
-Tests should validate both passing and failing scenarios.
-
-Avoid tests that merely reproduce the exact internal call sequence unless that
-sequence is itself part of the contract.
-
-Test should be named after their class with a `Tests` suffix. For example.
-`InMemoryBTree` should correspond with the test class `InMemoryBTreeTests`.
-
-The `PolyStore.Tests` project should use the same folder layout as `PolyStore`.
-
-Tests should follow AAA standard with code grouped by their Arrange, Act, and
-Assert sections.
-
-For bugs, add a regression test when practical.
-
-> Tests that verify observable behavior crossing an architectural boundary
-> (access path ↔ canonical store, expressions ↔ optimization, executor ↔ storage,
-> API ↔ engine, transaction ↔ propagation) live in
-> `PolyStore.IntegrationTests`. Unit and component tests live in
-> `PolyStore.Tests`. The decision rule and conventions are defined in
-> `docs/design/integration-testing.md`.
-
-## Performance
-
-This is infrastructure code.
-
-Be alert to:
-
-* unnecessary allocations;
-* repeated reflection;
-* expression-tree recompilation;
-* hidden buffering;
-* LINQ in extremely hot inner loops;
-* accidental quadratic graph traversal;
-* synchronization bottlenecks;
-* unbounded channels or queues.
-
-Do not micro-optimize blindly.
-
-When performance is the reason for a complex implementation, add a benchmark
-or explain how the improvement was established.
-
-## Error Handling
-
-Fail explicitly when semantics cannot be preserved.
-
-Do not silently:
-
-* fall back from seek to full scan;
-* ignore unsupported expression nodes;
-* drop transaction semantics;
-* skip propagation;
-* swallow backend planner failures;
-* ignore relation graph inconsistencies.
-
-A fallback may be valid, but it should be deliberate and observable.
-
-## Public API Changes
-
-Treat public API changes conservatively.
-
-Before changing an existing public type:
-
-1. determine why it exists;
-2. search for current usages;
-3. check architectural documentation;
-4. avoid widening the API unnecessarily.
-
-Do not retain a poor abstraction solely for compatibility while the project is
-still experimental, but do not churn public APIs without a reason.
-
-## Documentation
-
-Update documentation when introducing a new architectural concept or changing
-an invariant.
-
-Small implementation changes do not require documentation churn.
-
-If the change resolves an item listed as open in `ARCHITECTURE.md`, update
-that section.
-
-For major architectural decisions, consider adding an ADR.
-
-## Commit Discipline
-
-Keep changes focused.
-
-A commit should ideally represent one coherent reason for change.
-
-Use conventional commit messages where appropriate, for example:
-
-```text
-feat: (query) add async relation execution
-fix: (storage) preserve transaction version during scan
-refactor: (relations) separate write capability from base accessor
-test: (transactions) cover derived relation visibility
-docs: (architecture) document realization boundary
-```
-
-Do not mix broad formatting changes with behavioral changes.
-
-## Repository Modification Tasks
-
-When the user asks you to implement, modify, fix, refactor, or write code in
-the repository, you MUST use repository/file-editing tools to make those
-changes.
-
-Reasoning about the implementation, generating proposed code internally, or
-displaying code in the response does not satisfy the request.
-
-For repository modification tasks:
-
-1. Inspect the relevant existing files.
-2. Modify the files using the available editing tools.
-3. Verify that the modifications were actually written.
-4. Run relevant tests/builds.
-5. Inspect the resulting diff.
-6. Only then report completion.
-
-Do not stop after determining what the implementation should look like.
-
-If you have produced the intended implementation in reasoning but have not
-modified a file, continue the task by applying that implementation to the
-repository.
-
-Before reporting completion, verify that `git diff` contains the expected
-changes. If it does not, the implementation task is not complete.
-
-## When Asked to Prototype
-
-Prototype code should still preserve architectural boundaries.
-
-It is acceptable for a prototype to:
-
-* use an in-memory provider;
-* use PostgreSQL or SQLite temporarily;
-* use simplified transaction persistence;
-* support only a subset of expression nodes.
-
-It is not acceptable for a prototype to accidentally redefine the architecture
-around those limitations.
-
-Label temporary compromises clearly.
-
-## When Architecture Is Ambiguous
-
-If multiple implementations are plausible, prefer the one that:
-
-1. preserves existing invariants;
-2. introduces the fewest new concepts;
-3. is easiest to replace;
-4. exposes correctness issues rather than hiding them;
-5. keeps physical-storage details out of logical APIs.
-
-Do not guess at large new architectural policy based solely on common industry
-patterns.
-
-PolyStore intentionally differs from conventional ORM and CRUD designs in
-several places.
-
-## Architectural Red Flags
-
-Reconsider the implementation if it introduces any of the following without an
-explicit reason:
-
-```text
-IRelation<T> where T : class
-Task<List<T>> as the primary query result
-a DatabaseSchema property bag containing every relation
-a generic IStorageProvider<T>
-a single accessor interface containing every possible storage operation
-fire-and-forget derived relation updates after commit
-unbounded Rx buffering
-opaque generated SQL
-backend-specific concepts in the logical relation API
-repository-per-relation CRUD abstractions
-automatic convention-based behavior that cannot be validated
-```
-
-## Definition of Done
-
-For a normal implementation task, completion generally means:
-
-* the requested behavior is implemented;
-* architecture remains coherent;
-* relevant tests exist or were updated;
-* `dotnet build` succeeds;
-* `dotnet test` succeeds;
-* public APIs and documentation are updated when necessary;
-* no unrelated speculative framework was added.
-
-If one of these could not be completed, state which one and why.
-
-## Tool Usage
-
-Use the exposed file-reading tool for file contents and line ranges.
-Do not import node:fs or use Node.js filesystem APIs inside execute.
-
-If text processing is needed, first obtain the text through an exposed
-tool, then use supported string, array, and regex operations.
-
-Do not assume a tool is unavailable without checking the tool documentation.
-If no permitted tool can perform the operation, report the limitation.
-
-The `execute` tool uses a restricted JavaScript-like runtime, not Node.js.
-Do not use imports, require(), or Node.js filesystem/process APIs.
-
-Use the tools exposed by the runtime according to its tool documentation.
-For local commands, use the shell tool only when permitted.
-
-After an unsupported-syntax error, rewrite the call using supported
-tools and syntax rather than retrying the same approach.
+Run Release checks when warning/performance behavior or publishing is affected.
+CI's test job checks formatting and builds/tests Debug; publishing builds/tests
+Release. Benchmarks are built with the solution, but `dotnet test` and current
+CI do not execute them.
+
+Scoped checks can supplement solution validation. Record commands/results and
+baseline failures. No tests discovered is not tests passed. If the SDK,
+dependencies, or environment prevents validation, state the limitation.
+
+For documentation-only edits, inspect references, links, consistency, scope,
+and `git diff --check`; new engine tests are unnecessary. Do not perform
+unrelated repairs to make the baseline appear healthy.
+
+## 11. Documentation and Decision Maintenance
+
+`ARCHITECTURE.md` is the concise repository-wide decision summary, not a copy
+of every proposal or an implementation transcript.
+
+When a human-approved design establishes a decision:
+
+1. Summarize its durable contract/rationale in the relevant architecture section.
+2. Link the exact design and label the decision accepted but unimplemented,
+   implemented, superseded, or still open.
+3. Replace conflicting text and remove resolved questions together.
+4. Keep detailed algorithms, feature APIs, and validation plans in the design.
+
+When implementation lands, update current-state descriptions and affected
+examples/READMEs. Do not leave implemented signatures listed as undecided or
+unimplemented proposals described as current behavior. Design-only agents
+restricted to a proposal path must hand off architecture updates to its owner.
+
+Human approval controls acceptance; reviewer approval alone does not change
+repository-wide decisions. Identify stale approved revisions instead of
+silently implementing their obsolete baseline.
+
+## 12. Completion and Reporting
+
+For editing tasks, make actual file changes. Review `git diff --check`, the
+final diff, and `git status`. Use the working diff and `git diff main...HEAD`
+as appropriate; the latter omits uncommitted edits. Stay within scope and
+exclude generated artifacts.
+
+Use conventional commit messages when committing, such as
+`feat: add runtime tuple layout` or `docs: reconcile architecture with source`.
+Follow user/workflow instructions for commits, PRs, and publication. Do not
+claim changes were pushed/integrated unless that happened.
+
+Report concisely:
+
+- Changes and the contracts they establish or preserve.
+- Files/workspace/branch and commit, where applicable.
+- Checks/results, including unavailable checks or baseline failures.
+- Unresolved decisions, deviations, and required human answers.
+
+Completion means the requested result is written/reviewed, validation is
+reported accurately, and contradictions are resolved or explicitly surfaced.
+Do not substitute explanation for requested files or implementation.
