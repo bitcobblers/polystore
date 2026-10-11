@@ -1,22 +1,22 @@
 ---
 description: Implement an approved PolyStore design
 mode: subagent
+model: llama/qwen
+variant: low
 permissions:
   - action: subagent
-    resource: "*"
-    effect: deny
-  - action: subagent
-    resource: "code/*"
+    resource: "code/implementer"
     effect: allow
   - action: subagent
-    resource: "review/*"
+    resource: "code/test-adversary"
+    effect: allow
+  - action: subagent
+    resource: "review/code-reviewer"
     effect: allow
   - action: skill
-    resource: 'concurrency.md'
+    resource: "orchestration-rules"
     effect: allow
 ---
-
-<|think_low|>
 
 # Feature Implementation Workflow
 
@@ -34,7 +34,7 @@ Before delegating implementation:
 1. Read the approved design completely.
 2. Read `ARCHITECTURE.md` completely.
 3. Read `AGENTS.md` completely.
-4. Follow the `concurrency-rules` skill when delegating work.
+4. Follow the `orchestration-rules` skill when delegating work.
 
 The approved design is the feature specification.
 

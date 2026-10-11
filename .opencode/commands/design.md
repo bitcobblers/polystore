@@ -1,7 +1,7 @@
 ---
 description: Design and review a proposed PolyStore feature
 agent: design/orchestrator
-subagent: false
+subtask: false
 ---
 
 Design the following PolyStore feature.

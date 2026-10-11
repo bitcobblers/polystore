@@ -1,5 +1,5 @@
 --
-name: Pull Request Review
+name: pr
 description: Performs a review of code prior to creation of a pull request
 --
 

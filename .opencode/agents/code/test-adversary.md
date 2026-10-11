@@ -1,14 +1,19 @@
 ---
 description: Attempts to break a PolyStore feature using independent tests
 mode: subagent
-reasoningEffort: xhigh
+model: llama/qwen
+variant: xhigh
 permissions:
   - action: edit
-    resource: "*"
+    resource: "PolyStore.Benchmarks/**"
+    effect: allow
+  - action: edit
+    resource: "PolyStore.IntegrationTests/**"
+    effect: allow
+  - action: edit
+    resource: "PolyStore.Tests/**"
     effect: allow
 ---
-
-<|think_xhigh|>
 
 # Feature Adversarial Validation
 

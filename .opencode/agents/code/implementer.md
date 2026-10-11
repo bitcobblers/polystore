@@ -1,13 +1,13 @@
 ---
 description: Implements an approved PolyStore design
 mode: subagent
+model: llama/qwen
+variant: medium
 permissions:
   - action: edit
     resource: "*"
     effect: allow
 ---
-
-<|think_medium|>
 
 # Feature Implementation
 

@@ -1,7 +1,7 @@
 ---
 description: Implement an approved PolyStore design
 agent: code/orchestrator
-subagent: false
+subtask: false
 ---
 
 Implement the approved PolyStore design at:
