@@ -9,8 +9,6 @@ namespace PolyStore.Storage;
 /// A RID identifies a tuple within the canonical store. It is a logical
 /// identifier, not a physical memory or disk address. Consumers should not
 /// depend on a RID representing a stable physical location.
-/// The precise RID representation is not yet finalized; this implementation
-/// uses a simple non-negative integer that can be extended in the future.
 /// </remarks>
 public readonly struct Rid() : IEquatable<Rid>
 {
