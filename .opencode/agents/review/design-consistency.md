@@ -68,6 +68,12 @@ Do not require the document to prescribe every implementation detail.
 Check universal and exclusivity claims against the proposal's own
 exceptions and accepted inputs.
 
+Check that canonical output, accepted input, internal representation,
+and compatibility guarantees are described distinctly.
+
+Review absolute claims such as "cannot", "only", "unchanged", and
+"no risk" against the document's own examples and exceptions.
+
 ## Implementation Outline
 
 When an implementation outline is present, verify that:

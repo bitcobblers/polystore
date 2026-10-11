@@ -199,6 +199,12 @@ Revise affected contracts, examples, implications, and implementation steps
 together. Replace or remove obsolete explanations rather than appending
 patches to an increasingly contradictory document.
 
+When correcting a finding, preserve unrelated requirements.
+If the correction removes or changes a previously proposed capability,
+identify that scope change explicitly in the orchestrator handoff.
+
+Replace flawed rationale rather than retaining it around a new solution.
+
 Keep review dispositions in the handoff to the orchestrator, not in the
 proposal. Update the Executive Summary after substantive changes.
 

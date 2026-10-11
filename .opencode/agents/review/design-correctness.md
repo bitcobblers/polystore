@@ -29,6 +29,13 @@ Report contradictions when they affect correctness. Systematic tracing of
 terminology, examples, and revision residue belongs to the final consistency
 reviewer.
 
+Verify language and platform claims used to justify a design decision.
+Do not infer that a mechanism is unsupported merely because another
+mechanism is simpler.
+
+Distinguish value reconstruction from identifier generation, allocation,
+existence, authorization, or ownership.
+
 ## Architectural Fidelity
 
 Compare the proposal with established architecture and relevant repository

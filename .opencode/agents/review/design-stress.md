@@ -7,27 +7,6 @@ permissions:
   - action: skill
     resource: "design-reviewer"
     effect: allow
-  - action: external_directory
-    resource: "/tmp/polystore-probes/*"
-    effect: allow
-  - action: read
-    resource: "/tmp/polystore-probes/*"
-    effect: allow
-  - action: edit
-    resource: "/tmp/polystore-probes/*"
-    effect: allow
-  - action: shell
-    resource: "dotnet new console *"
-    effect: allow
-  - action: shell
-    resource: "dotnet restore *"
-    effect: allow
-  - action: shell
-    resource: "dotnet build *"
-    effect: allow
-  - action: shell
-    resource: "dotnet run *"
-    effect: allow
 ---
 
 You review PolyStore designs for performance and execution limitations.

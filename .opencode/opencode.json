@@ -7,10 +7,10 @@
     "list": "allow",
     "grep": "allow",
     "edit": "deny",
-    "bash": "deny",
+    "bash": "allow",
     "task": "deny",
     "skill": "deny",
-    "external_directory": "deny"
+    "external_directory": "allow"
   },
   "provider": {
     "llama": {

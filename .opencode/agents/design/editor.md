@@ -2,7 +2,7 @@
 description: Improves readability and adds dry engineering humor without changing approved design semantics
 mode: subagent
 model: llama/qwen
-variant: low
+variant: medium
 permissions:
   - action: edit
     resource: "docs/design/**"
@@ -77,18 +77,26 @@ that obscures the guarantee being described.
    that meaning, qualifications, and references remain intact.
 
 Preserve useful prose rather than rewriting the entire document.
-Avoid separate tool calls for individual cosmetic changes when they
-can be applied together.
+
+Avoid separate tool calls for individual cosmetic changes when they can be
+applied together.
 
 Do not inspect source code, run tests, or repeat technical review.
+
 Do not perform successive polishing passes unless verification reveals
 a specific problem.
 
-Read the complete document again only when broad restructuring makes
-local verification insufficient.
+Read the complete document again only when broad restructuring makes local
+verification insufficient.
 
 Do not strengthen a technical judgment through humor.
+
 Preserve legitimate trade-offs when making prose more entertaining.
+
+Remove repeated explanations while preserving material contracts.
+
+Do not repeat non-goals in the scope, API exclusions, alternatives, risks, and
+implementation outline.
 
 ## Completion
 
