@@ -81,8 +81,11 @@ When a plausible alternative could materially change correctness,
 architectural fit, or complexity, check that it was considered or that its
 exclusion is justified.
 
-Do not require artificial alternatives, arbitrary scoring, or discussion of
-every possible implementation.
+Evaluate the material alternatives, not the number of options.
+
+Request an omitted alternative only when it could change the
+recommendation. Prefer replacing a weak candidate over expanding
+the comparison beyond the designer's limit.
 
 ## Scope and Abstractions
 

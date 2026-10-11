@@ -117,6 +117,13 @@ or materially misrepresent the design.
 
 Different wording alone is not an inconsistency.
 
+Report violations of explicit document requirements, such as review
+history in the proposal, duplicated contracts, or exceeding the
+alternatives limit.
+
+Treat these as Minor unless they obscure or contradict material
+behavior. Do not request changes for personal stylistic preferences.
+
 ## Domain Boundaries
 
 Do not repeat general architecture, security, concurrency, or performance

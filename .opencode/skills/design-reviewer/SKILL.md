@@ -48,7 +48,9 @@ Distinguish verified facts, design assumptions, and unresolved questions.
   prevent correct implementation.
 
 Blocking or Major findings require CHANGES_REQUESTED.
+
 Minor findings alone do not prevent approval.
+
 If several minor observations expose a material problem, report
 that underlying problem as a Major finding.
 
@@ -64,9 +66,19 @@ For each finding provide:
 - Resolution criterion — what must become true or explicit
 
 Report each distinct root cause once.
+
 Combine related symptoms unless they require separate resolutions.
+
 Keep findings concise; include only evidence needed to assess them.
+
 Do not report stylistic preferences as technical findings.
+
+Before requiring another invariant or assumption, check whether the existing
+contract already resolves the failure scenario.
+
+A finding may be resolved by deleting an unsupported claim.
+
+Do not require additional guarantees merely to preserve its rationale.
 
 ## Re-review
 

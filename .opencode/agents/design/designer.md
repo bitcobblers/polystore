@@ -76,13 +76,25 @@ Leave routine coding choices to the implementer.
 
 ## Alternatives
 
-Discuss alternatives only when they could materially change correctness,
+Discuss at most three candidate approaches in total, including the
+recommendation. This is a maximum, not a target.
+
+Include only approaches that could materially change correctness,
 complexity, performance, or architectural fit.
 
-Explain why the recommendation best satisfies the requirements.
-Do not manufacture alternatives or assign arbitrary numeric scores.
+Compare them against the same relevant requirements and explain why
+the recommendation is preferred.
 
-When no meaningful alternative exists, a brief explanation is sufficient.
+Do not count independent API details or policy choices as separate
+approaches. Resolve those within the proposed design.
+
+Do not enumerate rejected interfaces, encodings, or hypothetical
+features without a plausible current use.
+
+When only one approach is credible, explain it briefly.
+
+If more than three materially distinct approaches require evaluation,
+report the unresolved decision in the orchestrator handoff.
 
 ## Relevant Risks
 
@@ -207,6 +219,12 @@ Replace flawed rationale rather than retaining it around a new solution.
 
 Keep review dispositions in the handoff to the orchestrator, not in the
 proposal. Update the Executive Summary after substantive changes.
+
+Use the smallest sufficient correction.
+
+Do not add a new subsection for each finding.
+
+Remove supporting claims that are unnecessary to establish the contract.
 
 ## Completion
 
