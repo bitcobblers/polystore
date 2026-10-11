@@ -76,6 +76,15 @@ that obscures the guarantee being described.
 4. Inspect the resulting diff and enough surrounding context to verify
    that meaning, qualifications, and references remain intact.
 
+Before editing, save an exact copy of the proposal to the snapshot path
+supplied by the orchestrator.
+
+The snapshot is the only additional file you may write. Do not edit it after
+creation.
+
+If the snapshot cannot be saved, report the limitation and stop before
+changing the proposal.
+
 Preserve useful prose rather than rewriting the entire document.
 
 Avoid separate tool calls for individual cosmetic changes when they can be

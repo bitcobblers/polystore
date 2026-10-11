@@ -118,16 +118,32 @@ Proceed only when all four technical reviewers approve the current revision.
 
 ## Phase 5 — Editing and Consistency Review
 
-Preserve the technically approved proposal for comparison.
+Invoke `design/editor` with:
 
-Invoke `design/editor` with the exact document path.
-Permit editorial changes only; technical meaning must remain unchanged.
+- the exact proposal path;
+- a snapshot path formed by appending `.pre-edit` to that path.
+
+Before editing, require the editor to copy the complete proposal,
+unchanged, to the snapshot path using the exposed file tools.
+The snapshot must reflect the revision approved by all four reviewers.
+
+Do not begin editing unless snapshot creation succeeds.
+Never edit the snapshot.
 
 Then invoke `review/design-consistency` with:
 
-- complete edited proposal;
-- technically approved pre-edit version;
-- editorial diff.
+- the final edited proposal path;
+- the pre-edit snapshot path.
+
+Require it to compare the two documents for preservation of technical
+meaning, alongside its normal consistency checks.
+
+A separate diff artifact is optional. The two complete documents
+are authoritative.
+
+After consistency review completes, retain the snapshot until the
+workflow finishes. Replace it only when beginning a new editorial
+pass on a newly approved revision.
 
 Require checks for internal consistency, implementation readiness,
 revision residue, Executive Summary accuracy, and preservation of
