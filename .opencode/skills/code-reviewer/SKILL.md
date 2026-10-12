@@ -11,7 +11,7 @@ Before reviewing:
 
 1. Read the approved design in full.
 2. Read `ARCHITECTURE.md` and `AGENTS.md`.
-3. Inspect the complete feature diff (feature branch against base branch).
+3. Inspect the complete feature diff (feature branch against main branch).
 4. Inspect the relevant production source, ordinary tests, adversarial
    tests, and benchmarks.
 
@@ -81,7 +81,7 @@ When re-reviewing a changed implementation:
 
 Return:
 
-1. Review Summary — maximum 100 words.
+1. Review Summary — approximately 100 words.
 2. Findings — grouped by severity.
 3. Required Changes — finding IDs and concise resolution criteria,
    only when requesting changes.

@@ -65,7 +65,7 @@ Recorded at start are:
 - the content hash of the design file;
 - the content hashes of the existing `.opencode/` workflow files (the files
   under `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, and
-  `opencode.json`);
+  `.opencode/opencode.json`);
 - the pre-start working-tree dirt set (path plus content hash, from
   `git status --porcelain`);
 - if the approved design designates `.opencode/` workflow files it changes
@@ -161,23 +161,6 @@ re-anchor to a committing agent's reported head is not a state change:
 upcoming reviews anchor to the new state, and existing approvals of the
 changed state are re-obtained through the findings-driven re-review flow
 (Phase 5), not invalidated by the re-anchor.
-
-If the approved design designates `.opencode/` workflow files it changes
-as deliverables — as this workflow's own implementation does — the
-definition-integrity anchor is re-anchored at each phase boundary before a
-review: the set check is always evaluated against the initial start-time
-anchor — within the anchored scope (`.opencode/agents/`,
-`.opencode/skills/`, `.opencode/commands/`, `opencode.json`), the set of
-files whose current existence or content differs from start must equal
-the design-designated set exactly (any other change escalates) — and
-re-anchoring then refreshes only the content hashes of the designated
-files. The Phase 7 report lists the re-anchored files and their final
-hashes. After any re-anchoring, the anchor no longer detects
-redefinition of the workflow by the feature itself; detection is the
-exact-set match plus human visibility of the re-anchored files at Phase
-7. For features that do not designate workflow-definition deliverables,
-the anchor is never re-anchored, and a definition-hash mismatch remains
-an escalation.
 
 The orchestrator also tracks repair rounds used under
 `orchestration-rules`, per-reviewer dispositions and the state they apply
