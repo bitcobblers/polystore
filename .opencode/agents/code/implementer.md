@@ -92,10 +92,16 @@ unspecified.
 Do not weaken, delete, skip, or rewrite a valid adversarial test merely to
 make the implementation pass validation.
 
+Benchmarks are required when the approved design establishes measurable
+performance or allocation requirements; otherwise exercise discretion to add
+benchmarks when the feature touches a hot path.
+
 ## Responding to Findings
 
-You may receive findings from `code/test-adversary` or
-`review/code-reviewer`.
+You may receive findings from `code/test-adversary`, the domain reviewers
+(`review/code-best-practices`, `review/code-security`,
+`review/code-scalability`, `review/code-performance`,
+`review/code-concurrency`), or `review/implementation-fidelity`.
 
 For each finding:
 

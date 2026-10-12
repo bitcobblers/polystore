@@ -2,7 +2,7 @@
 description: Coordinates PolyStore feature design and review
 mode: subagent
 model: llama/qwen
-variant: low
+variant: medium
 permissions:
   - action: subagent
     resource: "design/designer"
