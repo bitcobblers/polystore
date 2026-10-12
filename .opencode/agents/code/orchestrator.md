@@ -306,16 +306,13 @@ re-approval path as material findings.
 When the Phase 5 gate is satisfied and every material fidelity finding is
 closed per the gate rule, present to the human:
 
-- implementation summary and production files changed;
-- ordinary, adversarial, and benchmark tests added;
-- repair rounds used;
-- reviewer dispositions, per finding and per reviewer;
-- human decisions on escalated material findings, if any;
-- re-anchored workflow-definition files and their final hashes, if the
-  design designated deliverables;
-- remaining open Minor findings;
-- the final state anchor: feature head SHA, base reference, and verified
-  design and workflow-definition hashes;
+- implementation summary and production files changed.
+- ordinary, adversarial, and benchmark tests added.
+- repair rounds used.
+- reviewer dispositions, per finding and per reviewer.
+- human decisions on escalated material findings, if any.
+- remaining open Minor findings.
+- the final state anchor: feature head SHA, base reference.
 - unresolved items, if any.
 
 The human's decision applies to the reported state. The orchestrator
@@ -325,18 +322,6 @@ the state-mismatch machinery — and anchored approvals are invalidated and
 re-review of the current state is required before the decision proceeds.
 The human decides what happens next. The workflow does not create or merge
 pull requests.
-
-## Budget
-
-The workflow follows the shared `orchestration-rules` budget: at most five
-repair rounds; the initial implementation, first validation, and first
-reviews consume no rounds; findings reconciled together consume one round
-regardless of how many agents reported them; the budget is shared across
-all phases, including fidelity, and never resets. The current "Allow at
-most 10 review cycles" cap is removed. Mandated commit-before-return
-advances are re-anchors, not events. State-driven re-reviews
-(state-mismatch events) do not consume repair rounds; they are bounded by
-the state-mismatch bounds in the state contract.
 
 ## Escalation
 
