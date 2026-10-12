@@ -89,7 +89,7 @@ When reviewing a revised proposal:
 
 Return:
 
-1. Review Summary — maximum 100 words.
+1. Review Summary — approximately 100 words.
 2. Findings — grouped by severity.
 3. Required Changes — finding IDs and concise resolution criteria,
    only when requesting changes.
