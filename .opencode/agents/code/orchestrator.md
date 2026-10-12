@@ -237,6 +237,9 @@ require a disposition for every finding:
 Keep dispositions in the orchestrator's handoff, not in the code. Do not
 require changes solely to eliminate optional Minor findings.
 
+The orchestrator reconciles each distinct finding once — overlap is
+expected; double bookkeeping is not.
+
 A repair round begins when the implementer is directed to make changes in
 response to collected findings; the implementer commits the resulting
 changes on the feature branch before returning. Findings that are only

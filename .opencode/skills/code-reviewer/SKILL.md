@@ -61,6 +61,9 @@ Report each distinct root cause once.
 
 Combine related symptoms.
 
+When a defect also falls within another review domain, report it and
+identify the affected domain so the orchestrator can route it.
+
 A suspected defect that cannot be verified is reported as unverified, with
 the evidence available, rather than asserted as established — suspicion is a
 category, not a verdict.
