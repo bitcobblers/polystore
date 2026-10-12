@@ -63,13 +63,8 @@ Recorded at start are:
 
 - the feature head SHA at start, which is the initial anchor's head;
 - the content hash of the design file;
-- the content hashes of the existing `.opencode/` workflow files (the files
-  under `.opencode/agents/`, `.opencode/skills/`, `.opencode/commands/`, and
-  `.opencode/opencode.json`);
 - the pre-start working-tree dirt set (path plus content hash, from
   `git status --porcelain`);
-- if the approved design designates `.opencode/` workflow files it changes
-  as deliverables, that designated set.
 
 The design and definition hashes are verified before each review and at
 completion; a mismatch is an escalation rather than silent continuation.
